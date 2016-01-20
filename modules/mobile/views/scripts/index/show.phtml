@@ -1,0 +1,74 @@
+<?php
+/**
+ * This file is part of OPUS. The software OPUS has been originally developed
+ * at the University of Stuttgart with funding from the German Research Net,
+ * the Federal Department of Higher Education and Research and the Ministry
+ * of Science, Research and the Arts of the State of Baden-Wuerttemberg.
+ *
+ * OPUS 4 is a complete rewrite of the original OPUS software and was developed
+ * by the Stuttgart University Library, the Library Service Center
+ * Baden-Wuerttemberg, the Cooperative Library Network Berlin-Brandenburg,
+ * the Saarland University and State Library, the Saxon State Library -
+ * Dresden State and University Library, the Bielefeld University Library and
+ * the University Library of Hamburg University of Technology with funding from
+ * the German Research Foundation and the European Regional Development Fund.
+ *
+ * LICENCE
+ * OPUS is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation; either version 2 of the Licence, or any later version.
+ * OPUS is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details. You should have received a copy of the GNU General Public License
+ * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
+ * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * @category    Application
+ * @package     Module_Mobile
+ * @author      Jens Schwidder <schwidder@zib.de>
+ * @copyright   Copyright (c) 2008-2016, OPUS 4 development team
+ * @license     http://www.gnu.org/licenses/gpl.html General Public License
+ */
+?>
+
+<!-- Page showing detailed information about a document. -->
+<div data-role="page" id="frontdoor">
+
+    <div data-role="header">
+        <!-- TODO use pagechange handler and fromPage argument to return to previous page -->
+        <a href="#home" class="ui-btn ui-icon-home ui-btn-icon-notext ui-corner-all">Home</a>
+        <h1>Frontdoor</h1>
+    </div>
+
+    <div role="main" class="ui-content">
+        <div class="ui-corner-all custom-corners">
+            <div class="ui-bar ui-bar-a">
+                <h3><?= $this->document->getMainTitle() ?></h3>
+            </div>
+
+            <div class="ui-body ui-body-a">
+                <?PHP foreach($this->document->getAuthors() as $author) : ?>
+                    <?= $author['name'] ?>&nbsp;
+                <?PHP endforeach ?>
+            </div>
+        </div>
+
+        <hr />
+
+
+        <div class="ui-grid-a" data-inset="true">
+            <div class="ui-block-a">Document Type:</div>
+            <div class="ui-block-b"><?= $this->document->getDocType() ?></div>
+            <div class="ui-block-a">Language:</div>
+            <div class="ui-block-b"><?= $this->doc->getLanguage() ?></div>
+        </div>
+    </div>
+
+    <div data-role="footer">
+        <!--a href="#frontdoor" class="ui-btn ui-icon-carat-l ui-btn-icon-notext ui-corner-all">Previous</a-->
+        <h4>OPUS 4</h4>
+        <!--a href="#frontdoor" class="ui-btn ui-icon-carat-r ui-btn-icon-notext ui-corner-all">Next</a-->
+    </div>
+
+</div>

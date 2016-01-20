@@ -1,0 +1,117 @@
+<?php
+/**
+ * This file is part of OPUS. The software OPUS has been originally developed
+ * at the University of Stuttgart with funding from the German Research Net,
+ * the Federal Department of Higher Education and Research and the Ministry
+ * of Science, Research and the Arts of the State of Baden-Wuerttemberg.
+ *
+ * OPUS 4 is a complete rewrite of the original OPUS software and was developed
+ * by the Stuttgart University Library, the Library Service Center
+ * Baden-Wuerttemberg, the Cooperative Library Network Berlin-Brandenburg,
+ * the Saarland University and State Library, the Saxon State Library -
+ * Dresden State and University Library, the Bielefeld University Library and
+ * the University Library of Hamburg University of Technology with funding from
+ * the German Research Foundation and the European Regional Development Fund.
+ *
+ * LICENCE
+ * OPUS is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation; either version 2 of the Licence, or any later version.
+ * OPUS is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details. You should have received a copy of the GNU General Public License
+ * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
+ * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * @category    Application
+ * @package     Module_Mobile
+ * @author      Jens Schwidder <schwidder@zib.de>
+ * @copyright   Copyright (c) 2008-2016, OPUS 4 development team
+ * @license     http://www.gnu.org/licenses/gpl.html General Public License
+ */
+?>
+
+<html>
+
+<head>
+    <title>OPUS 4 - Mobile</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+    <link rel="stylesheet" href="<?= $this->layoutPath() ?>/css/mobile.css" />
+    <script src="http://code.jquery.com/jquery-2.2.0.min.js"></script>
+    <script src="http://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+    <script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+    <script src="<?= $this->layoutPath() ?>/js/mobile.js"></script>
+    <link href="<?= $this->layoutPath() ?>/img/logo/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+    <link href="<?= $this->layoutPath() ?>/img/logo/favicon.ico" rel="apple-touch-icon" type="image/x-icon" />
+</head>
+
+<body>
+
+<!-- Start page of application with search box, logo and general information. -->
+<div data-role="page" id="home">
+
+    <div data-role="header" data-position="fixed">
+        <a href="mobile/index/about" class="ui-btn ui-icon-info ui-btn-icon-notext ui-corner-all">About</a>
+        <h1>OPUS 4</h1>
+        <a href="#mainMenu" data-rel="popup" class="ui-btn ui-icon-bars ui-btn-inline ui-btn-right ui-btn-icon-notext ui-corner-all">Menu</a>
+    </div>
+
+    <div style="text-align: center">
+    <img src="<?= $this->layoutPath() ?>/img/logo/logo.gif" alt="OPUS" title="Home" width="185" height="89" />
+    </div>
+
+    <div style="padding: 0.5em; text-align: justify">Welcome to the default layout of the OPUS 4 repository software. This is the prototype of a new mobile
+    interface.</div>
+
+    <div role="main" class="ui-content">
+        <form action="mobile/index/search" class="ui-filterable" id="searchform">
+            <input data-type="search" placeholder="Search..." id="autocomplete-search" name="search" type="search" />
+        </form>
+        <ul id="autocomplete" data-role="listview" data-inset="true" data-filter="true" data-input="#autocomplete-search"></ul>
+
+        <a href="mobile/index/search?searchtype=all" class="ui-link">All Documents</a>
+        <a href="mobile/index/search?searchtype=newest" class="ui-link">New Documents</a>
+        <!-- TODO number of documents -->
+        <a href="mobile/index/doctypes" class="ui-link">Document Types</a>
+    </div>
+
+    <div data-role="footer" data-position="fixed">
+        <div data-role="navbar">
+            <ul>
+                <li><button data-icon="home">Home</button></li>
+                <li><button data-icon="grid">Browsing</button></li>
+                <li><button data-icon="search">Search</button></li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+
+<!--div data-role="popup" id="mainMenu" data-theme="b">
+    <ul data-role="listview" data-inset="true" style="min-width: 210px">
+        <li><a href="#all">All</a></li>
+        <li><a href="#about">About</a></li>
+    </ul>
+</div-->
+
+<!-- Page showing result of search -->
+<div data-role="page" id="result">
+
+    <div data-role="header">
+        <h1>Search Result</h1>
+    </div>
+
+    <div role="main" class="ui-content">
+    </div>
+
+</div>
+
+<!-- TODO options for filtering search results -->
+
+</body>
+
+</html>
