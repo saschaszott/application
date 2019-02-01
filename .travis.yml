@@ -36,7 +36,9 @@ script:
   - sed -i -e "s!@searchengine.extract.host@!localhost!" tests/config.ini
   - sed -i -e "s!@searchengine.extract.port@!8983!" tests/config.ini
   - sed -i -e "s!@searchengine.extract.app@!/solr/opus4!" tests/config.ini
-  - ./tests/rebuilding_database.sh
+  - cd tests
+  - ./rebuilding_database.sh
+  - cd ..
   - mysql opusdb -u root --password='' -e 'SELECT * FROM schema_version'
   - ant download-solr -DsolrVersion=5.5.5
   - cd solr-5.5.5
