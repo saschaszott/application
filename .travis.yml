@@ -27,6 +27,8 @@ script:
   - sed -i -e "s!@db.user.name@!root!" tests/config.ini
   - sed -i -e "s!@db.user.password@!''!" tests/config.ini
   - sed -i -e "s!@db.name@!opusdb!" tests/config.ini
+  - sed -i -e "s!@db.admin.name@!root!" tests/config.ini
+  - sed -i -e "s!@db.admin.password@!''!" tests/config.ini
   - sed -i -e "s!@searchengine.default.host@!localhost!" tests/config.ini
   - sed -i -e "s!@searchengine.default.port@!8983!" tests/config.ini
   - sed -i -e "s!@searchengine.default.path@!/solr/opus4!" tests/config.ini
