@@ -22,7 +22,7 @@ script:
   - export SOLR_JAVA_HOME="$CURR_DIR/jre1.8.0_202/"
   - echo "SOLR_JAVA_HOME is set to $SOLR_JAVA_HOME"
   - mysql --version
-  - mkdir -p tests/workspace/cache tests/workspace/files tests/workspace/log tests/workspace/tmp
+  - mkdir -p tests/workspace/cache tests/workspace/files tests/workspace/log tests/workspace/tmp workspace/tmp
   - cp -p tests/config.ini.template tests/config.ini
   - sed -i -e "s!@db.user.name@!root!" tests/config.ini
   - sed -i -e "s!@db.user.password@!''!" tests/config.ini
