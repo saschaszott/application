@@ -12,7 +12,9 @@ cache:
   directories:
     - $HOME/.composer/cache
     - $HOME/download
-before_script: composer install
+before_script:
+    - composer install
+    - phpenv config-add travis.php.ini
 script:
   - wget 'https://download.java.net/java/early_access/jdk8/b03/BCL/jre-8u202-ea-bin-b03-linux-x64-07_nov_2018.tar.gz'
   - tar xfz jre-8u202-ea-bin-b03-linux-x64-07_nov_2018.tar.gz
@@ -68,5 +70,5 @@ script:
   - ln -s "$TRAVIS_BUILD_DIR/vendor/opus4-repo/search/solrconfig-5.xml" solrconfig.xml
   - cd ../../../../
   - ./bin/solr restart
-  - cd ..
-  - ./vendor/bin/phpunit --configuration ./tests/phpunit.xml
+  - cd ../tests
+  - "$TRAVIS_BUILD_DIR/vendor/bin/phpunit" --configuration phpunit.xml
