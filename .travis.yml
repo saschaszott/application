@@ -16,8 +16,9 @@ before_script:
     - composer install
     - phpenv config-add travis.php.ini
 script:
-  - wget 'https://download.java.net/java/early_access/jdk8/b03/BCL/jre-8u202-ea-bin-b03-linux-x64-07_nov_2018.tar.gz'
-  - tar xfz jre-8u202-ea-bin-b03-linux-x64-07_nov_2018.tar.gz
+  - wget 'https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u202-b08/OpenJDK8U-jre_x64_linux_hotspot_8u202b08.tar.gz'
+  - tar xfz OpenJDK8U-jre_x64_linux_hotspot_8u202b08.tar.gz 
+  - ls -l
   - ./jre1.8.0_202/bin/java -version
   - java -version
   - CURR_DIR=`pwd`
