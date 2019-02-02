@@ -18,11 +18,10 @@ before_script:
 script:
   - wget 'https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u202-b08/OpenJDK8U-jre_x64_linux_hotspot_8u202b08.tar.gz'
   - tar xfz OpenJDK8U-jre_x64_linux_hotspot_8u202b08.tar.gz 
-  - ls -l
-  - ./jre1.8.0_202/bin/java -version
+  - ./jdk8u202-b08-jre/bin/java -version
   - java -version
   - CURR_DIR=`pwd`
-  - export SOLR_JAVA_HOME="$CURR_DIR/jre1.8.0_202/"
+  - export SOLR_JAVA_HOME="$CURR_DIR/jdk8u202-b08-jre/"
   - echo "SOLR_JAVA_HOME is set to $SOLR_JAVA_HOME"
   - mysql --version
   - mkdir -p tests/workspace/cache tests/workspace/files tests/workspace/log tests/workspace/tmp workspace/tmp
