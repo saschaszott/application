@@ -19,7 +19,7 @@ before_script:
   - phpenv config-rm xdebug.ini || return 0
 script:
   - wget 'https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u202-b08/OpenJDK8U-jre_x64_linux_hotspot_8u202b08.tar.gz'
-  - tar xfz OpenJDK8U-jre_x64_linux_hotspot_8u202b08.tar.gz 
+  - tar xfz OpenJDK8U-jre_x64_linux_hotspot_8u202b08.tar.gz
   - ./jdk8u202-b08-jre/bin/java -version
   - java -version
   - CURR_DIR=`pwd`
