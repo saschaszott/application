@@ -1,32 +1,21 @@
----
-
-dist: xenial
-
-language: php
-
-php:
-  - 7.0
-
-services:
-  - mysql
-
-addons:
-  apt:
-    packages:
+--- 
+addons: 
+  apt: 
+    packages: 
       - ant
-
-cache:
-  directories:
-    - $HOME/.composer/cache
-    - $HOME/download
-
-before_script:
+before_script: 
   - composer install
   - phpenv config-add travis.php.ini
-  # disable xdebug as we do not need code coverage analysis in this context
   - phpenv config-rm xdebug.ini || return 0
-
-script:
+cache: 
+  directories: 
+    - $HOME/.composer/cache
+    - $HOME/download
+dist: xenial
+language: php
+php: 
+  - 7.0
+script: 
   - wget 'https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u202-b08/OpenJDK8U-jre_x64_linux_hotspot_8u202b08.tar.gz'
   - tar xfz OpenJDK8U-jre_x64_linux_hotspot_8u202b08.tar.gz
   - ./jdk8u202-b08-jre/bin/java -version
@@ -37,36 +26,36 @@ script:
   - mysql --version
   - mkdir -p tests/workspace/cache tests/workspace/files tests/workspace/log tests/workspace/tmp workspace/tmp
   - cp -p tests/config.ini.template tests/config.ini
-  - sed -i -e "s!@db.user.name@!root!" tests/config.ini
-  - sed -i -e "s!@db.user.password@!''!" tests/config.ini
-  - sed -i -e "s!@db.name@!opusdb!" tests/config.ini
-  - sed -i -e "s!@db.admin.name@!root!" tests/config.ini
-  - sed -i -e "s!@db.admin.password@!''!" tests/config.ini
-  - sed -i -e "s!@searchengine.default.host@!localhost!" tests/config.ini
-  - sed -i -e "s!@searchengine.default.port@!8983!" tests/config.ini
-  - sed -i -e "s!@searchengine.default.path@!/solr/opus4!" tests/config.ini
-  - sed -i -e "s!@searchengine.index.host@!localhost!" tests/config.ini
-  - sed -i -e "s!@searchengine.index.port@!8983!" tests/config.ini
-  - sed -i -e "s!@searchengine.index.app@!/solr/opus4!" tests/config.ini
-  - sed -i -e "s!@searchengine.extract.host@!localhost!" tests/config.ini
-  - sed -i -e "s!@searchengine.extract.port@!8983!" tests/config.ini
-  - sed -i -e "s!@searchengine.extract.app@!/solr/opus4!" tests/config.ini
+  - "sed -i -e \"s!@db.user.name@!root!\" tests/config.ini"
+  - "sed -i -e \"s!@db.user.password@!''!\" tests/config.ini"
+  - "sed -i -e \"s!@db.name@!opusdb!\" tests/config.ini"
+  - "sed -i -e \"s!@db.admin.name@!root!\" tests/config.ini"
+  - "sed -i -e \"s!@db.admin.password@!''!\" tests/config.ini"
+  - "sed -i -e \"s!@searchengine.default.host@!localhost!\" tests/config.ini"
+  - "sed -i -e \"s!@searchengine.default.port@!8983!\" tests/config.ini"
+  - "sed -i -e \"s!@searchengine.default.path@!/solr/opus4!\" tests/config.ini"
+  - "sed -i -e \"s!@searchengine.index.host@!localhost!\" tests/config.ini"
+  - "sed -i -e \"s!@searchengine.index.port@!8983!\" tests/config.ini"
+  - "sed -i -e \"s!@searchengine.index.app@!/solr/opus4!\" tests/config.ini"
+  - "sed -i -e \"s!@searchengine.extract.host@!localhost!\" tests/config.ini"
+  - "sed -i -e \"s!@searchengine.extract.port@!8983!\" tests/config.ini"
+  - "sed -i -e \"s!@searchengine.extract.app@!/solr/opus4!\" tests/config.ini"
   - cp -p application/configs/config.ini.template application/configs/config.ini
-  - sed -i -e "s!@db.user.name@!root!" application/configs/config.ini
-  - sed -i -e "s!@db.user.password@!''!" application/configs/config.ini
-  - sed -i -e "s!@db.name@!opusdb!" application/configs/config.ini
-  - sed -i -e "s!@searchengine.default.host@!localhost!" application/configs/config.ini
-  - sed -i -e "s!@searchengine.default.port@!8983!" application/configs/config.ini
-  - sed -i -e "s!@searchengine.default.path@!/solr/opus4!" application/configs/config.ini
-  - sed -i -e "s!@searchengine.index.host@!localhost!" application/configs/config.ini
-  - sed -i -e "s!@searchengine.index.port@!8983!" application/configs/config.ini
-  - sed -i -e "s!@searchengine.index.app@!/solr/opus4!" application/configs/config.ini
-  - sed -i -e "s!@searchengine.extract.host@!localhost!" application/configs/config.ini
-  - sed -i -e "s!@searchengine.extract.port@!8983!" application/configs/config.ini
-  - sed -i -e "s!@searchengine.extract.app@!/solr/opus4!" application/configs/config.ini
+  - "sed -i -e \"s!@db.user.name@!root!\" application/configs/config.ini"
+  - "sed -i -e \"s!@db.user.password@!''!\" application/configs/config.ini"
+  - "sed -i -e \"s!@db.name@!opusdb!\" application/configs/config.ini"
+  - "sed -i -e \"s!@searchengine.default.host@!localhost!\" application/configs/config.ini"
+  - "sed -i -e \"s!@searchengine.default.port@!8983!\" application/configs/config.ini"
+  - "sed -i -e \"s!@searchengine.default.path@!/solr/opus4!\" application/configs/config.ini"
+  - "sed -i -e \"s!@searchengine.index.host@!localhost!\" application/configs/config.ini"
+  - "sed -i -e \"s!@searchengine.index.port@!8983!\" application/configs/config.ini"
+  - "sed -i -e \"s!@searchengine.index.app@!/solr/opus4!\" application/configs/config.ini"
+  - "sed -i -e \"s!@searchengine.extract.host@!localhost!\" application/configs/config.ini"
+  - "sed -i -e \"s!@searchengine.extract.port@!8983!\" application/configs/config.ini"
+  - "sed -i -e \"s!@searchengine.extract.app@!/solr/opus4!\" application/configs/config.ini"
   - cp -p application/configs/console.ini.template application/configs/console.ini
-  - sed -i -e "s!@db.admin.name@!root!" application/configs/console.ini
-  - sed -i -e "s!@db.admin.password@!''!" application/configs/console.ini
+  - "sed -i -e \"s!@db.admin.name@!root!\" application/configs/console.ini"
+  - "sed -i -e \"s!@db.admin.password@!''!\" application/configs/console.ini"
   - cd tests
   - ./rebuilding_database.sh
   - cd ..
@@ -83,3 +72,5 @@ script:
   - ./bin/solr restart
   - cd ../tests
   - $TRAVIS_BUILD_DIR/vendor/bin/phpunit --configuration phpunit.xml
+services: 
+  - mysql
