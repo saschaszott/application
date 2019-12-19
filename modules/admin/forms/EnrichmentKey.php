@@ -108,7 +108,7 @@ class Admin_Form_EnrichmentKey extends Application_Form_Model_Abstract
         );
 
         // alle verfügbaren EnrichmentTypes ermitteln und als Auswahlfeld anzeigen
-        $availableTypes[''] = ''; // Standardauswahl des Select-Felds soll leer sein
+        $availableTypes[''] = '—'; // Standardauswahl des Select-Felds soll leer sein
         $availableTypes = array_merge($availableTypes, Opus_Enrichment_AbstractType::getAllEnrichmentTypes());
         $element->setMultiOptions($availableTypes);
         $this->addElement($element);
