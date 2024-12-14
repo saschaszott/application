@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -23,20 +24,18 @@
  * details. You should have received a copy of the GNU General Public License
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
+ * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\UserRole;
 
 /**
  * Formularelement für Auswahl von Rollen über Checkboxen.
- *
- * @category    Application
- * @package     Form_Element
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
- * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 class Application_Form_Element_Roles extends Application_Form_Element_MultiCheckbox
 {
-
     public function init()
     {
         parent::init();
@@ -48,33 +47,40 @@ class Application_Form_Element_Roles extends Application_Form_Element_MultiCheck
 
     public function loadDefaultDecorators()
     {
-        if (! $this->loadDefaultDecoratorsIsDisabled() && count($this->getDecorators()) == 0) {
+        if (! $this->loadDefaultDecoratorsIsDisabled() && count($this->getDecorators()) === 0) {
             $this->setDecorators([
                 'ViewHelper',
-                'ElementHtmlTag', [
-                    'LabelNotEmpty', [
-                        'tag' => 'div', 'tagClass' => 'label', 'placement' => 'prepend', 'disableFor' => true
-                    ]
-                ], [
+                'ElementHtmlTag',
+                [
+                    'LabelNotEmpty',
+                    [
+                        'tag'        => 'div',
+                        'tagClass'   => 'label',
+                        'placement'  => 'prepend',
+                        'disableFor' => true,
+                    ],
+                ],
+                [
                     ['dataWrapper' => 'HtmlTagWithId'],
-                    ['tag' => 'div', 'class' => 'data-wrapper']
-                ]
+                    ['tag' => 'div', 'class' => 'data-wrapper'],
+                ],
             ]);
         }
     }
 
     /**
      * Create options for all roles.
+     *
      * @return array
      */
     public function getRolesMultiOptions()
     {
-        $roles = Opus_UserRole::getAll();
+        $roles = UserRole::getAll();
 
         $options = [];
 
         foreach ($roles as $role) {
-            $roleName = $role->getDisplayName();
+            $roleName           = $role->getDisplayName();
             $options[$roleName] = $roleName;
         }
 
@@ -83,12 +89,13 @@ class Application_Form_Element_Roles extends Application_Form_Element_MultiCheck
 
     /**
      * Sets selected roles.
-     * @param mixed $value Role names or Opus_UserRole objects
+     *
+     * @param mixed $value Role names or UserRole objects
      */
     public function setValue($value)
     {
         if (is_array($value)) {
-            if (count($value) > 0 && $value[0] instanceof Opus_UserRole) {
+            if (count($value) > 0 && $value[0] instanceof UserRole) {
                 $value = $this->getRoleNames($value);
             }
         }
@@ -97,8 +104,9 @@ class Application_Form_Element_Roles extends Application_Form_Element_MultiCheck
     }
 
     /**
-     * Returns array of Opus_UserRole objects.
-     * @return array of Opus_UserRole
+     * Returns array of UserRole objects.
+     *
+     * @return array of UserRole
      */
     public function getRoles()
     {
@@ -108,7 +116,7 @@ class Application_Form_Element_Roles extends Application_Form_Element_MultiCheck
 
         if (is_array($names)) {
             foreach ($names as $name) {
-                array_push($roles, Opus_UserRole::fetchByName($name));
+                array_push($roles, UserRole::fetchByName($name));
             }
         }
 
@@ -117,8 +125,9 @@ class Application_Form_Element_Roles extends Application_Form_Element_MultiCheck
 
     /**
      * Converts array with objects into array with role names.
-     * @param $roles array of Opus_UserRole objects
-     * @return array Role names
+     *
+     * @param array $roles UserRole objects
+     * @return string[] Role names
      */
     public function getRoleNames($roles)
     {

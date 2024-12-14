@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -23,50 +24,51 @@
  * details. You should have received a copy of the GNU General Public License
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * @copyright   Copyright (c) 2017, OPUS 4 development team
+ * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
 /**
  * Add short names for CC 3.0 licences.
- *
- * @category    Application
- * @package     Application_Update
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2017, OPUS 4 development team
- * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Licence;
+use Opus\Common\Repository;
+use Opus\Model\Plugin\InvalidateDocumentCache;
 
 /**
  * Added short names (labels) to licences that look like the old standard licences distributed with OPUS 4.
  */
 class Application_Update_AddCC30LicenceShortNames extends Application_Update_PluginAbstract
 {
-
     /**
      * Patterns for licence matching.
+     *
      * @var array
      */
     private $licences = [
-        '/(?:(Creative Commons)|(CC)).*Namensnennung.*Nicht.*kommerziell.*Keine.*Bearbeitung/' => 'CC BY-NC-ND 3.0',
+        '/(?:(Creative Commons)|(CC)).*Namensnennung.*Nicht.*kommerziell.*Keine.*Bearbeitung/'                                => 'CC BY-NC-ND 3.0',
         '/(?:(Creative Commons)|(CC)).*Namensnennung.*Keine.*kommerzielle Nutzung.*Weitergabe.*unter.*gleichen.*Bedingungen/' => 'CC BY-NC-SA 3.0',
-        '/(?:(Creative Commons)|(CC)).*Namensnennung.*Nicht.*kommerziell.*Weitergabe.*unter.*gleichen.*Bedingungen/' => 'CC BY-NC-SA 3.0',
-        '/(?:(Creative Commons)|(CC)).*Namensnennung.*Nicht.*kommerziell/' => 'CC BY-NC 3.0',
-        '/(?:(Creative Commons)|(CC)).*Namensnennung.*Keine.*Bearbeitung/' => 'CC BY-ND 3.0',
-        '/(?:(Creative Commons)|(CC)).*Namensnennung.*Weitergabe.*unter.*gleichen.*Bedingungen/' => 'CC BY-SA 3.0',
-        '/(?:(Creative Commons)|(CC)).*Namensnennung/' => 'CC BY 3.0'
+        '/(?:(Creative Commons)|(CC)).*Namensnennung.*Nicht.*kommerziell.*Weitergabe.*unter.*gleichen.*Bedingungen/'          => 'CC BY-NC-SA 3.0',
+        '/(?:(Creative Commons)|(CC)).*Namensnennung.*Nicht.*kommerziell/'                                                    => 'CC BY-NC 3.0',
+        '/(?:(Creative Commons)|(CC)).*Namensnennung.*Keine.*Bearbeitung/'                                                    => 'CC BY-ND 3.0',
+        '/(?:(Creative Commons)|(CC)).*Namensnennung.*Weitergabe.*unter.*gleichen.*Bedingungen/'                              => 'CC BY-SA 3.0',
+        '/(?:(Creative Commons)|(CC)).*Namensnennung/'                                                                        => 'CC BY 3.0',
     ];
 
     public function run()
     {
-        $cache = new Opus_Model_Xml_Cache();
+        $cache = Repository::getInstance()->getDocumentXmlCache();
 
-        $licences = Opus_Licence::getAll();
+        $licences = Licence::getAll();
 
         foreach ($licences as $licence) {
             $nameLong = $licence->getNameLong();
 
             $name = $licence->getName();
 
-            if (! is_null($name)) {
+            if ($name !== null) {
                 $this->log("Licence already has short name ('$name' => '$nameLong')");
                 continue;
             }
@@ -78,16 +80,16 @@ class Application_Update_AddCC30LicenceShortNames extends Application_Update_Plu
 
             $name = $this->getShortName($nameLong);
 
-            if (! is_null($name)) {
+            if ($name !== null) {
                 // 'name' must be unique - check if already used
-                $existingLicence = Opus_Licence::fetchByName($name);
+                $existingLicence = Licence::fetchByName($name);
 
-                if (is_null($existingLicence)) {
+                if ($existingLicence === null) {
                     $licence->setName($name);
 
                     // prevent updates to ServerDateModified
                     // TODO cache should be transparent - updating ServerDateModified is important
-                    $licence->unregisterPlugin('Opus_Model_Plugin_InvalidateDocumentCache');
+                    $licence->unregisterPlugin(InvalidateDocumentCache::class);
 
                     $licence->store();
 
@@ -108,8 +110,9 @@ class Application_Update_AddCC30LicenceShortNames extends Application_Update_Plu
 
     /**
      * Get matching short name for long licence names.
-     * @param $nameLong
-     * @return mixed|null
+     *
+     * @param string $nameLong
+     * @return string|null
      */
     public function getShortName($nameLong)
     {
@@ -124,7 +127,8 @@ class Application_Update_AddCC30LicenceShortNames extends Application_Update_Plu
 
     /**
      * Removes licence after it has been used.
-     * @param $name
+     *
+     * @param string $name
      */
     public function removeLicence($name)
     {

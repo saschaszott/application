@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,29 +25,28 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Tests
- * @package     Application_Update
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2020, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Translate\Dao;
+
 class Application_Update_ImportStaticPagesTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['database', 'translation'];
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
-        $dao = new Opus_Translate_Dao();
+        $dao = new Dao();
         $dao->removeAll();
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
-        $dao = new Opus_Translate_Dao();
+        $dao = new Dao();
         $dao->removeAll();
 
         parent::tearDown();
@@ -54,7 +54,7 @@ class Application_Update_ImportStaticPagesTest extends ControllerTestCase
 
     public function testRun()
     {
-        $database = new Opus_Translate_Dao();
+        $database = new Dao();
 
         $update = new Application_Update_ImportStaticPages();
         $update->setRemoveFilesEnabled(false);
@@ -75,12 +75,13 @@ class Application_Update_ImportStaticPagesTest extends ControllerTestCase
 
         $update->importFilesAsKey('contact', 'testkey', 'home');
 
-        $database = new Opus_Translate_Dao();
+        $database = new Dao();
 
-        $translations = $database->getAll();
+        $translations = $database->getTranslationsWithModules();
 
         $this->assertCount(1, $translations);
         $this->assertArrayHasKey('testkey', $translations);
+        $this->assertEquals('home', $translations['testkey']['module']);
     }
 
     public function testGetFiles()

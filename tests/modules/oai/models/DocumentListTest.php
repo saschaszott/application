@@ -25,17 +25,16 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Tests
- * @author      Thoralf Klein <thoralf.klein@zib.de>
- * @author      Michael Lang <lang@zib.de>
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2014-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2014, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Document;
+use Opus\Common\Identifier;
+
 class Oai_Model_DocumentListTest extends ControllerTestCase
 {
-
+    /** @var string */
     protected $additionalResources = 'database';
 
     /**
@@ -45,7 +44,7 @@ class Oai_Model_DocumentListTest extends ControllerTestCase
     {
         $docWithUrn = $this->createTestDocument();
         $docWithUrn->setServerState('published');
-        $identifier = new Opus_Identifier();
+        $identifier = Identifier::new();
         $identifier->setValue('urn_value1');
         $identifier->setType('urn');
         $docWithUrn->addIdentifier($identifier);
@@ -55,10 +54,10 @@ class Oai_Model_DocumentListTest extends ControllerTestCase
         $docWoUrn->setServerState('published');
         $docWoUrnId = $docWoUrn->store();
 
-        $oaiRequest = ['metadataPrefix' => 'epicur'];
-        $docListModel = new Oai_Model_DocumentList();
+        $oaiRequest                             = ['metadataPrefix' => 'epicur'];
+        $docListModel                           = new Oai_Model_DocumentList();
         $docListModel->deliveringDocumentStates = ['published'];
-        $docIds = $docListModel->query($oaiRequest);
+        $docIds                                 = $docListModel->query($oaiRequest);
 
         $this->assertTrue(in_array($docWithUrnId, $docIds), 'Document with URN is not returned.');
         $this->assertFalse(in_array($docWoUrnId, $docIds), 'Document without URN is returned.');
@@ -77,7 +76,7 @@ class Oai_Model_DocumentListTest extends ControllerTestCase
         $doc->addFile($file);
         $this->docId = $doc->store();
 
-        $doc = new Opus_Document($this->docId);
+        $doc                = Document::get($this->docId);
         $serverDateModified = $doc->getServerDateModified();
 
         $today = new DateTime();
@@ -93,9 +92,9 @@ class Oai_Model_DocumentListTest extends ControllerTestCase
         $tomorrow = clone $today;
         $tomorrow->modify('+1 day');
 
-        $todayStr = date_format($today, 'Y-m-d');
+        $todayStr     = date_format($today, 'Y-m-d');
         $yesterdayStr = date_format($yesterday, 'Y-m-d');
-        $tomorrowStr = date_format($tomorrow, 'Y-m-d');
+        $tomorrowStr  = date_format($tomorrow, 'Y-m-d');
 
         $intervals = [
             [],
@@ -113,10 +112,10 @@ class Oai_Model_DocumentListTest extends ControllerTestCase
             $oaiRequest = ['verb' => 'ListRecords', 'metadataPrefix' => 'XMetaDissPlus'];
             $oaiRequest = array_merge($interval, $oaiRequest);
 
-            $docListModel = new Oai_Model_DocumentList();
+            $docListModel                           = new Oai_Model_DocumentList();
             $docListModel->deliveringDocumentStates = ['published', 'deleted'];
-            $docListModel->xMetaDissRestriction = [];
-            $docIds = $docListModel->query($oaiRequest);
+            $docListModel->xMetaDissRestriction     = [];
+            $docIds                                 = $docListModel->query($oaiRequest);
 
             $this->assertTrue(
                 in_array($this->docId, $docIds),
@@ -135,7 +134,7 @@ class Oai_Model_DocumentListTest extends ControllerTestCase
         $doc->setServerState('published');
         $this->docId = $doc->store();
 
-        $doc = new Opus_Document($this->docId);
+        $doc                = Document::get($this->docId);
         $serverDateModified = $doc->getServerDateModified();
 
         $today = new DateTime();
@@ -157,10 +156,10 @@ class Oai_Model_DocumentListTest extends ControllerTestCase
         $dayAfterTomorrow = clone $tomorrow;
         $dayAfterTomorrow->modify('+1 day');
 
-        $yesterdayStr = date_format($yesterday, 'Y-m-d');
+        $yesterdayStr          = date_format($yesterday, 'Y-m-d');
         $dayBeforeYesterdayStr = date_format($dayBeforeYesterday, 'Y-m-d');
-        $tomorrowStr = date_format($tomorrow, 'Y-m-d');
-        $dayAfterTomorrowStr = date_format($dayAfterTomorrow, 'Y-m-d');
+        $tomorrowStr           = date_format($tomorrow, 'Y-m-d');
+        $dayAfterTomorrowStr   = date_format($dayAfterTomorrow, 'Y-m-d');
 
         $intervals = [
             ['from' => $tomorrowStr],
@@ -173,10 +172,10 @@ class Oai_Model_DocumentListTest extends ControllerTestCase
             $oaiRequest = ['verb' => 'ListRecords', 'metadataPrefix' => 'XMetaDissPlus'];
             $oaiRequest = array_merge($interval, $oaiRequest);
 
-            $docListModel = new Oai_Model_DocumentList();
+            $docListModel                           = new Oai_Model_DocumentList();
             $docListModel->deliveringDocumentStates = ['published', 'deleted'];
-            $docListModel->xMetaDissRestriction = [];
-            $docIds = $docListModel->query($oaiRequest);
+            $docListModel->xMetaDissRestriction     = [];
+            $docIds                                 = $docListModel->query($oaiRequest);
 
             $this->assertFalse(in_array($this->docId, $docIds), "Response must NOT contain document id $this->docId: " . var_export($interval, true));
         }
@@ -200,10 +199,10 @@ class Oai_Model_DocumentListTest extends ControllerTestCase
 
         $oaiRequest = ['verb' => 'ListRecords', 'metadataPrefix' => 'XMetaDissPlus'];
 
-        $docListModel = new Oai_Model_DocumentList();
+        $docListModel                           = new Oai_Model_DocumentList();
         $docListModel->deliveringDocumentStates = ['published', 'deleted'];
-        $docListModel->xMetaDissRestriction = [];
-        $docIds = $docListModel->query($oaiRequest);
+        $docListModel->xMetaDissRestriction     = [];
+        $docIds                                 = $docListModel->query($oaiRequest);
 
         $this->assertTrue(
             in_array($docIdIncluded, $docIds),
@@ -218,10 +217,10 @@ class Oai_Model_DocumentListTest extends ControllerTestCase
 
         $oaiRequest = ['verb' => 'ListRecords', 'metadataPrefix' => 'xMetaDissPlus'];
 
-        $docListModel = new Oai_Model_DocumentList();
+        $docListModel                           = new Oai_Model_DocumentList();
         $docListModel->deliveringDocumentStates = ['published', 'deleted'];
-        $docListModel->xMetaDissRestriction = [];
-        $docIds = $docListModel->query($oaiRequest);
+        $docListModel->xMetaDissRestriction     = [];
+        $docIds                                 = $docListModel->query($oaiRequest);
 
         $this->assertTrue(
             in_array($docIdIncluded, $docIds),

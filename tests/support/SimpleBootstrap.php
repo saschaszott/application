@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,17 +25,19 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Tests
- * @package     Support
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2019, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
- *
+ */
+
+use Opus\Common\Config;
+use Opus\Common\Log;
+use Opus\Common\Log\LogService;
+
+/**
  * TODO take care of duplicated code (from regular bootstrap) - maybe SimpleBootstrap is not needed anymore?
  */
 class SimpleBootstrap extends Zend_Application_Bootstrap_Bootstrap
 {
-
     /**
      * Load application configuration file and register the configuration
      * object with the Zend registry under 'Zend_Config'.
@@ -46,90 +49,37 @@ class SimpleBootstrap extends Zend_Application_Bootstrap_Bootstrap
      * $config = $registry->get('Zend_Config');
      * </code>
      *
-     * @throws Exception          Exception is thrown if configuration level is invalid.
      * @return Zend_Config
-     *
+     * @throws Exception Exception is thrown if configuration level is invalid.
+     * @phpcs:disable PSR2.Methods.MethodDeclaration
      */
     protected function _initConfiguration()
     {
+        // @phpcs:enable
         $config = new Zend_Config($this->getOptions(), true);
-        Zend_Registry::set('Zend_Config', $config);
+        Config::set($config);
         return $config;
     }
 
     /**
      * Setup Logging
      *
+     * @return Zend_Log
      * @throws Exception If logging file couldn't be opened.
-     * @return void
-     *
+     * @phpcs:disable PSR2.Methods.MethodDeclaration
      */
     protected function _initLogging()
     {
+        // @phpcs:enable
         $this->bootstrap('Configuration');
-
-        $config = $this->getResource('Configuration');
 
         $logFilename = "opus-console.log";
 
-        $logfilePath = $config->workspacePath . '/log/' . $logFilename;
+        $logService = LogService::getInstance();
 
-        $logfile = @fopen($logfilePath, 'a', false);
+        $logger = $logService->createLog(LogService::DEFAULT_LOG, null, null, $logFilename);
 
-        if ($logfile === false) {
-            $path = dirname($logfilePath);
-
-            if (! is_dir($path)) {
-                throw new Exception('Directory for logging does not exist');
-            } else {
-                throw new Exception("Failed to open logging file: $logfilePath");
-            }
-        }
-
-        // Write ID string to global variables, so we can identify/match individual runs.
-        $GLOBALS['id_string'] = uniqid();
-
-        $format = '%timestamp% %priorityName% (%priority%, ID '.$GLOBALS['id_string'].'): %message%' . PHP_EOL;
-        $formatter = new Zend_Log_Formatter_Simple($format);
-
-        $writer = new Zend_Log_Writer_Stream($logfile);
-        $writer->setFormatter($formatter);
-
-        $logger = new Zend_Log($writer);
-        $logLevelName = 'INFO';
-        $logLevelNotConfigured = false;
-
-        if (isset($config->log->level)) {
-            $logLevelName = strtoupper($config->log->level);
-        } else {
-            $logLevelNotConfigured = true;
-        }
-
-        $zendLogRefl = new ReflectionClass('Zend_Log');
-
-        $invalidLogLevel = false;
-
-        $logLevel = $zendLogRefl->getConstant($logLevelName);
-
-        if (empty($logLevel)) {
-            $logLevel = Zend_Log::INFO;
-            $invalidLogLevel = true;
-        }
-
-        // filter log output
-        $priorityFilter = new Zend_Log_Filter_Priority($logLevel);
-        Zend_Registry::set('LOG_LEVEL', $logLevel);
-        $logger->addFilter($priorityFilter);
-
-        if ($logLevelNotConfigured) {
-            $logger->warn("Log level not configured, using default '$logLevelName'.");
-        }
-
-        if ($invalidLogLevel) {
-            $logger->err("Invalid log level '$logLevelName' configured.");
-        }
-
-        Zend_Registry::set('Zend_Log', $logger);
+        Log::set($logger);
 
         $logger->debug('Logging initialized');
 

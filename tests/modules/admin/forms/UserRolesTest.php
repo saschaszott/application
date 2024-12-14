@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,32 +25,32 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Tests
- * @package     Admin_Form
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2019, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Account;
+use Opus\Common\UserRole;
+
 class Admin_Form_UserRolesTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['database'];
 
     public function testConstruct()
     {
         $form = new Admin_Form_UserRoles();
 
-        $roles = Opus_UserRole::getAll();
+        $roles = UserRole::getAll();
 
         $elements = $form->getElements();
 
-        $this->assertEquals(count($roles), count($elements));
+        $this->assertSameSize($roles, $elements);
     }
 
     public function testPopulateFromModel()
     {
-        $account = Opus_Account::fetchAccountByLogin('sworduser');
+        $account = Account::fetchAccountByLogin('sworduser');
 
         $form = new Admin_Form_UserRoles();
 
@@ -97,7 +98,7 @@ class Admin_Form_UserRolesTest extends ControllerTestCase
         $form->getElement('administrator')->setValue(1);
         $form->getElement('sworduser')->setValue(1);
 
-        $account = new Opus_Account();
+        $account = Account::new();
 
         $form->updateModel($account);
 
@@ -137,8 +138,8 @@ class Admin_Form_UserRolesTest extends ControllerTestCase
 
         $form->populate([
             'administrator' => 1,
-            'sworduser' => 1,
-            'docsadmin' => 0
+            'sworduser'     => 1,
+            'docsadmin'     => 0,
         ]);
 
         $selected = $form->getSelectedRoles();

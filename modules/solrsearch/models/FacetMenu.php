@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,36 +25,38 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Module_Solrsearch
- * @author      Michael Lang <lang@zib.de>
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2020, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\CollectionRole;
+use Opus\Search\Facet\Set;
+
 /**
- * Class Solrsearch_Model_FacetMenu
- *
  * TODO refactor as view helper or something better
  */
 class Solrsearch_Model_FacetMenu extends Application_Model_Abstract
 {
-
     /**
      * Resolves the facet-options from URL and builds a result array with the number of facets to display.
+     *
+     * @param array $paramSet
      * @return array result[facet_name] = number
      */
     public function buildFacetArray($paramSet)
     {
         // TODO not sure I like processing request parameters in *opus4-search* class (backend code)
-        return Opus\Search\Facet\Set::getFacetLimitsFromInput($paramSet);
+        return Set::getFacetLimitsFromInput($paramSet);
     }
 
     /**
      * This merges facets configurations and actual facet results.
      *
      * TODO create Facet objects here an populate with data (might be moved later, but is a start)
+     *
+     * @param Base                         $result
+     * @param Zend_Controller_Request_Http $request
+     * @return array
      */
     public function getFacets($result, $request)
     {
@@ -70,19 +73,19 @@ class Solrsearch_Model_FacetMenu extends Application_Model_Abstract
         foreach ($facets as $name) {
             $facet = $facetManager->getFacet($name);
 
-            if (is_null($facet)) {
+            if ($facet === null) {
                 continue;
             }
 
             $indexFieldName = $facet->getIndexField();
-            $facetValue = $request->getParam($name . 'fq', '');
+            $facetValue     = $request->getParam($name . 'fq', '');
 
             if (isset($indexFields[$indexFieldName]) && (count($indexFields[$indexFieldName]) > 0 || $facetValue !== '')) {
                 $this->getLogger()->debug("found $name facet in search results");
 
                 $values = $indexFields[$indexFieldName];
 
-                if (is_null($facet) || ! $facet->isAllowed()) {
+                if ($facet === null || ! $facet->isAllowed()) {
                     continue;
                 }
 
@@ -93,7 +96,7 @@ class Solrsearch_Model_FacetMenu extends Application_Model_Abstract
                     $facet->setShowFacetExtender(false);
                 } else {
                     // TODO encapsulate in Facet object
-                    $facet->setShowFacetExtender($facet->getLimit() <= sizeof($values));
+                    $facet->setShowFacetExtender($facet->getLimit() <= count($values));
                 }
 
                 $facet->setOpen(isset($openFacets[$name]));
@@ -103,9 +106,9 @@ class Solrsearch_Model_FacetMenu extends Application_Model_Abstract
         }
 
         // Hide institutes facet if collection does not exist or is hidden TODO handle somewhere else
-        $institutes = Opus_CollectionRole::fetchByName('institutes');
+        $institutes = CollectionRole::fetchByName('institutes');
 
-        if (is_null($institutes) || ! $institutes->getVisible()) {
+        if ($institutes === null || ! $institutes->getVisible()) {
             unset($facetArray['institute']);
         }
 

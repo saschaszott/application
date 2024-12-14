@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -23,32 +24,32 @@
  * details. You should have received a copy of the GNU General Public License
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
+ * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
 /**
  * Unit Tests für abstrakte Basisklasse für alle OPUS Formulare.
- *
- * @category    Application Unit Test
- * @package     Application_Form
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
- * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 class Application_Form_AbstractTest extends ControllerTestCase
 {
-
+    /** @var Application_Form_Abstract */
     private $form;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
         $this->form = $this->getForm();
     }
 
+    /**
+     * @return Application_Form_Abstract
+     */
     private function getForm()
     {
-        return $this->getMockForAbstractClass('Application_Form_Abstract');
+        return $this->getMockForAbstractClass(Application_Form_Abstract::class);
     }
 
     public function testInit()
@@ -76,7 +77,7 @@ class Application_Form_AbstractTest extends ControllerTestCase
     public function testGetLogger()
     {
         $this->assertNotNull($this->form->getLogger());
-        $this->assertInstanceOf('Zend_Log', $this->form->getLogger());
+        $this->assertInstanceOf(Zend_Log::class, $this->form->getLogger());
     }
 
     public function testGetElementValue()
@@ -194,8 +195,8 @@ class Application_Form_AbstractTest extends ControllerTestCase
     public function testAddElementRequiredExistingValidatorMessages()
     {
         $this->form->addElement('text', 'test', [
-            'required' => true,
-            'validators' => ['notEmpty']
+            'required'   => true,
+            'validators' => ['notEmpty'],
         ]);
 
         $element = $this->form->getElement('test');
@@ -250,8 +251,8 @@ class Application_Form_AbstractTest extends ControllerTestCase
         $config = $this->form->getApplicationConfig();
 
         $this->assertNotNull($config);
-        $this->assertInstanceOf('Zend_Config', $config);
-        $this->assertSame($config, Zend_Registry::get('Zend_Config'));
+        $this->assertInstanceOf(Zend_Config::class, $config);
+        $this->assertSame($config, $this->getConfig());
     }
 
     public function testSetApplicationConfig()
@@ -268,6 +269,6 @@ class Application_Form_AbstractTest extends ControllerTestCase
 
         $returnedConfig = $this->form->getApplicationConfig();
 
-        $this->assertSame(Zend_Registry::get('Zend_Config'), $returnedConfig);
+        $this->assertSame($this->getConfig(), $returnedConfig);
     }
 }

@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,18 +25,19 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2013-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2013, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Document;
+use Opus\Common\TitleAbstract;
 
 /**
  * Unit Tests fuer Unterformular fuer Zusammenfassungen.
  */
 class Admin_Form_Document_AbstractTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['view', 'translation'];
 
     public function testCreateForm()
@@ -52,7 +54,7 @@ class Admin_Form_Document_AbstractTest extends ControllerTestCase
     {
         $form = new Admin_Form_Document_Abstract();
 
-        $doc = new Opus_Document(146);
+        $doc = Document::get(146);
 
         $abstracts = $doc->getTitleAbstract();
 
@@ -74,7 +76,7 @@ class Admin_Form_Document_AbstractTest extends ControllerTestCase
         $form->getElement('Language')->setValue('eng');
         $form->getElement('Value')->setValue('Test Zusammenfassung!');
 
-        $abstract = new Opus_TitleAbstract();
+        $abstract = TitleAbstract::new();
 
         $form->updateModel($abstract);
 
@@ -86,7 +88,7 @@ class Admin_Form_Document_AbstractTest extends ControllerTestCase
     {
         $form = new Admin_Form_Document_Abstract();
 
-        $doc = new Opus_Document(146);
+        $doc = Document::get(146);
 
         $abstracts = $doc->getTitleAbstract();
 
@@ -159,7 +161,7 @@ class Admin_Form_Document_AbstractTest extends ControllerTestCase
 
         $post = [
             'Language' => 'rus',
-            'Value' => ' '
+            'Value'    => ' ',
         ];
 
         $this->assertFalse($form->isValid($post));

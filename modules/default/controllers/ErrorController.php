@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,24 +25,18 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Module_Default
- * @author      Ralf Claussnitzer (ralf.claussnitzer@slub-dresden.de)
- * @author      Thoralf Klein <thoralf.klein@zib.de>
- * @author      Michael Lang <lang@zib.de>
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2017, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Mail\MailException;
+use Opus\Common\Mail\SendMail;
+
 /**
  * This controller is called on every error or exception.
- *
- * @package     Module_Default
  */
 class ErrorController extends Application_Controller_Action
 {
-
     /**
      * Always allow access to this controller; Override check in parent method.
      */
@@ -51,8 +46,6 @@ class ErrorController extends Application_Controller_Action
 
     /**
      * Print error information appropriate to environment.
-     *
-     * @return void
      */
     public function errorAction()
     {
@@ -76,8 +69,8 @@ class ErrorController extends Application_Controller_Action
             case Zend_Controller_Plugin_ErrorHandler::EXCEPTION_NO_ACTION:
                 // 404 error -- controller or action not found
                 $this->getResponse()->setHttpResponseCode(404);
-                $this->view->title = 'error_page_not_found';
-                $this->view->message = $this->view->translate('error_page_not_found');
+                $this->view->title        = 'error_page_not_found';
+                $this->view->message      = $this->view->translate('error_page_not_found');
                 $this->view->errorMessage = $this->view->translate('error_msg_page_not_found');
                 break;
             default:
@@ -85,12 +78,13 @@ class ErrorController extends Application_Controller_Action
                 $this->setResponseCode(500);
                 if ($errors->exception instanceof Application_Exception) {
                     $code = $errors->exception->getHttpResponsecode();
-                    if ($code != null) {
+                    // TODO VARTYPE
+                    if ($code !== null || $code !== 0) {
                         $this->setResponseCode($code);
                     }
                 }
-                $this->view->title = 'error_application';
-                $this->view->message = $this->view->translate('error_application');
+                $this->view->title        = 'error_application';
+                $this->view->message      = $this->view->translate('error_application');
                 $this->view->errorMessage = $this->view->translate($errors->exception->getMessage());
                 break;
         }
@@ -115,7 +109,7 @@ class ErrorController extends Application_Controller_Action
         }
 
         try {
-            $this->_sendErrorMail(
+            $this->sendErrorMail(
                 $config,
                 $this->getResponse()->getHttpResponseCode(),
                 $this->view,
@@ -127,9 +121,13 @@ class ErrorController extends Application_Controller_Action
         }
     }
 
+    /**
+     * @param int $code
+     * @throws Zend_Controller_Response_Exception
+     */
     private function setResponseCode($code)
     {
-        if ($code != null) {
+        if ($code !== null) {
             $this->getResponse()->setHttpResponseCode($code);
         } else {
             $this->getResponse()->setHttpResponseCode(500);
@@ -137,35 +135,36 @@ class ErrorController extends Application_Controller_Action
     }
 
     /**
-     * @param $config
-     * @param $responseCode
-     * @param $view
-     * @param $request
-     * @param $exception
+     * @param Zend_Config                  $config
+     * @param int                          $responseCode
+     * @param Zend_View_Interface          $view
+     * @param Zend_Controller_Request_Http $request
+     * @param Exception                    $exception
      * @return bool
      * @throws Application_Exception
-     * @throws Opus_Mail_Exception
+     * @throws MailException
      *
      * TODO Escape exception messages, other stuff? Is it possible to inject javascript in E-Mail?
      */
-    public function _sendErrorMail($config, $responseCode, $view, $request, $exception)
+    public function sendErrorMail($config, $responseCode, $view, $request, $exception)
     {
         if (! isset($config->errorController->mailTo)) {
             return false;
         }
 
-        if (! is_object($exception) or ! ($exception instanceof Exception)) {
+        if (! is_object($exception) || ! $exception instanceof Exception) {
             throw new Application_Exception('Invalid Exception object given.');
         }
 
-        if (! is_object($request) or ! ($request instanceof Zend_Controller_Request_Abstract)) {
+        if (! is_object($request) || ! $request instanceof Zend_Controller_Request_Abstract) {
             throw new Application_Exception('Invalid Zend_Controller_Request_Abstract object given.');
         }
 
         // Setting up mail subject.
-        $instanceName = isset($config->instance_name) ? $config->instance_name : 'Opus4';
+        $instanceName = $config->instance_name ?? 'Opus4';
 
-        $subject = $instanceName . " (ID " . (array_key_exists('id_string', $GLOBALS) ? $GLOBALS['id_string'] : 'undef')
+        $subject  = $instanceName . " (ID "
+            . (array_key_exists('id_string', $GLOBALS) ? $GLOBALS['id_string'] : 'undef')
             . ") ($responseCode): " . get_class($exception) . " ";
         $subject .= "/" . $request->getModuleName() . "/" . $request->getControllerName() . "/"
             . $request->getActionName();
@@ -197,7 +196,7 @@ class ErrorController extends Application_Controller_Action
         }
         $body .= "\n";
 
-        $body .= "Request:\n";
+        $body      .= "Request:\n";
         $serverKeys = ['HTTP_USER_AGENT', 'SCRIPT_URI', 'HTTP_REFERER', 'REMOTE_ADDR'];
         foreach ($serverKeys as $key) {
             if (array_key_exists($key, $_SERVER)) {
@@ -234,10 +233,10 @@ class ErrorController extends Application_Controller_Action
 
         $adminAddress = [
             'address' => $config->errorController->mailTo->address,
-            'name' => $config->errorController->mailTo->name,
+            'name'    => $config->errorController->mailTo->name,
         ];
 
-        $mail = new Opus_Mail_SendMail();
+        $mail = new SendMail();
         $mail->sendMail(
             $config->mail->opus->address,
             $config->mail->opus->name,

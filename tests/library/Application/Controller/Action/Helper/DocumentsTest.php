@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,21 +25,22 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Tests
- * @package     Application_Controller_Action_Helper
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Document;
+use Opus\Common\DocumentInterface;
+
 class Application_Controller_Action_Helper_DocumentsTest extends ControllerTestCase
 {
-
+    /** @var string */
     protected $additionalResources = 'database';
 
+    /** @var Zend_Controller_Action_Helper_Abstract */
     private $documents;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
@@ -52,7 +54,7 @@ class Application_Controller_Action_Helper_DocumentsTest extends ControllerTestC
         $document = $this->documents->getDocumentForId($docId);
 
         $this->assertNotNull($document);
-        $this->assertInstanceOf('Opus_Document', $document);
+        $this->assertInstanceOf(DocumentInterface::class, $document);
     }
 
     public function testGetDocumentForIdForEmptyValue()
@@ -93,7 +95,7 @@ class Application_Controller_Action_Helper_DocumentsTest extends ControllerTestC
         $lastId = 0;
 
         foreach ($documents as $value) {
-            $this->assertTrue(ctype_digit($value));
+            $this->assertInternalType('int', $value);
             $this->assertGreaterThan($lastId, $value); // check ascending order
             $lastId = $value;
         }
@@ -109,27 +111,30 @@ class Application_Controller_Action_Helper_DocumentsTest extends ControllerTestC
         $lastId = max($documents) + 1; // start with something greater than the greatest ID
 
         foreach ($documents as $value) {
-            $this->assertTrue(ctype_digit($value));
+            $this->assertInternalType('int', $value);
             $this->assertLessThan($lastId, $value); // check descending order
             $lastId = $value;
         }
     }
 
+    /**
+     * @return array
+     */
     public function stateProvider()
     {
         return [
-            'published' => ['published'],
-            'restricted' => ['restricted'],
+            'published'   => ['published'],
+            'restricted'  => ['restricted'],
             'unpublished' => ['unpublished'],
-            'deleted' => ['deleted'],
-            'inprogress' => ['inprogress'],
-            'audited' => ['audited']
+            'deleted'     => ['deleted'],
+            'inprogress'  => ['inprogress'],
+            'audited'     => ['audited'],
         ];
     }
 
     /**
-     * @param $state
      * @dataProvider stateProvider
+     * @param string $state
      */
     public function testGetSortedDocumentIdsForState($state)
     {
@@ -141,7 +146,7 @@ class Application_Controller_Action_Helper_DocumentsTest extends ControllerTestC
 
         if (count($documents) > 0) {
             foreach ($documents as $docId) {
-                $document = new Opus_Document($docId);
+                $document = Document::get($docId);
                 $this->assertEquals($state, $document->getServerState());
             }
         }

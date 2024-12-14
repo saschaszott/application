@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,32 +25,28 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Module_Admin
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
 /**
  * Abstrakte Klasse fuer Unterformulare fuer Model Klassen.
  *
- * Diese Klassen aktualisieren Opus_Document nicht direkt, sondern geben das von ihnen angezeigte Model an das
+ * Diese Klassen aktualisieren Document nicht direkt, sondern geben das von ihnen angezeigte Model an das
  * übergeordnete Formular weiter. Dadurch kann Admin_Form_Document_MultiSubForm zum Beispiel die Modelle aller Patente
- * im Formular einsammeln und dann die Funktion setPatent verwenden, um das Feld in Opus_Document zu setzen.
+ * im Formular einsammeln und dann die Funktion setPatent verwenden, um das Feld in Document zu setzen.
  *
- * Die updateModel Funktionen in diesen Klassen erwarten nicht Opus_Document als Parameter, sondern das entsprechende
- * Model wie zum Beispiel Opus_Identifier oder Opus_Title.
+ * Die updateModel Funktionen in diesen Klassen erwarten nicht Document als Parameter, sondern das entsprechende
+ * Model wie zum Beispiel Identifier oder Title.
  */
 abstract class Admin_Form_AbstractModelSubForm extends Admin_Form_AbstractDocumentSubForm
 {
-
     public function init()
     {
         parent::init();
 
         $this->setDecorators([
-            'FormElements'
+            'FormElements',
         ]);
     }
 

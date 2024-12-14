@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,29 +25,28 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Test
- * @package     Setup_Form
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2020, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Translate\Dao;
+
 class Setup_Form_FaqItemTest extends ControllerTestCase
 {
-
+    /** @var string */
     protected $additionalResources = 'Translation';
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
-        $translations = new Opus_Translate_Dao();
+        $translations = new Dao();
         $translations->removeAll();
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
-        $translations = new Opus_Translate_Dao();
+        $translations = new Dao();
         $translations->removeAll();
 
         parent::tearDown();
@@ -65,7 +65,7 @@ class Setup_Form_FaqItemTest extends ControllerTestCase
 
         $content = [
             'en' => 'new contact text',
-            'de' => 'neuer Kontakt text'
+            'de' => 'neuer Kontakt text',
         ];
 
         $element = $form->getElement('Answer');
@@ -73,7 +73,7 @@ class Setup_Form_FaqItemTest extends ControllerTestCase
 
         $form->updateEntry();
 
-        $translations = new Opus_Translate_Dao();
+        $translations = new Dao();
 
         $this->assertEquals(
             $content,
@@ -89,7 +89,7 @@ class Setup_Form_FaqItemTest extends ControllerTestCase
 
         $content = [
             'en' => 'new imprint text',
-            'de' => 'neuer Impressum text'
+            'de' => 'neuer Impressum text',
         ];
 
         $element = $form->getElement('Answer');
@@ -97,7 +97,7 @@ class Setup_Form_FaqItemTest extends ControllerTestCase
 
         $form->updateEntry();
 
-        $translations = new Opus_Translate_Dao();
+        $translations = new Dao();
 
         $this->assertEquals(
             $content,

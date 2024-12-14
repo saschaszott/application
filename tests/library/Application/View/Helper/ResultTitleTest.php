@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,27 +25,29 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @package     Application_View_Helper
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2019, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Search\Result\ResultMatch;
+
 class Application_View_Helper_ResultTitleTest extends ControllerTestCase
 {
+    /** @var string[] */
+    protected $additionalResources = ['database', 'view', 'translation'];
 
-    protected $additionalResources = ['database', 'view'];
-
+    /** @var Application_View_Helper_ResultTitle */
     protected $helper;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
         $this->helper = new Application_View_Helper_ResultTitle();
-        $view = Zend_Registry::get('Opus_View');
+        $view         = $this->getView();
         $this->helper->setView($view);
+
+        $this->useEnglish();
     }
 
     public function testRendering()
@@ -57,7 +60,7 @@ class Application_View_Helper_ResultTitleTest extends ControllerTestCase
 
         $docId = $document->store();
 
-        $result = new \Opus\Search\Result\Match($docId);
+        $result                     = new ResultMatch($docId);
         $this->helper->view->result = $result;
 
         $output = $this->helper->resultTitle();
@@ -73,9 +76,9 @@ class Application_View_Helper_ResultTitleTest extends ControllerTestCase
         $this->application->bootstrap('translation');
 
         $document = $this->createTestDocument();
-        $docId = $document->store();
+        $docId    = $document->store();
 
-        $result = new \Opus\Search\Result\Match($docId);
+        $result                     = new ResultMatch($docId);
         $this->helper->view->result = $result;
 
         $output = $this->helper->resultTitle();
@@ -91,13 +94,13 @@ class Application_View_Helper_ResultTitleTest extends ControllerTestCase
         $this->application->bootstrap('translation');
 
         $document = $this->createTestDocument();
-        $docId = $document->store();
+        $docId    = $document->store();
 
-        $result = new \Opus\Search\Result\Match($docId);
+        $result                     = new ResultMatch($docId);
         $this->helper->view->result = $result;
 
-        $this->helper->view->start = 10;
-        $this->helper->view->rows = 20;
+        $this->helper->view->start      = 10;
+        $this->helper->view->rows       = 20;
         $this->helper->view->searchType = 'all';
 
         $output = $this->helper->resultTitle();

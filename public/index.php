@@ -25,12 +25,8 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @author      Ralf Claussnitzer (ralf.claussnitzer@slub-dresden.de)
- * @author      Thoralf Klein <thoralf.klein@zib.de>
- * @copyright   Copyright (c) 2008-2010, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
- * @version     $Id$
  */
 
 // Saving start time for profiling.
@@ -44,18 +40,21 @@ defined('APPLICATION_PATH')
 defined('APPLICATION_ENV')
         || define(
             'APPLICATION_ENV',
-            (getenv('APPLICATION_ENV') ? getenv('APPLICATION_ENV') : 'production')
+            getenv('APPLICATION_ENV') ? getenv('APPLICATION_ENV') : 'production'
         );
 
 // Ensure library/ is on include_path
 set_include_path(implode(PATH_SEPARATOR, [
-            realpath(dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . 'library'),
-            realpath(dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . 'vendor'),
-            get_include_path(),
-        ]));
+    realpath(dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . 'library'),
+    realpath(dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . 'vendor'),
+    get_include_path(),
+]));
 
 require_once 'autoload.php';
 require_once 'opus-php-compatibility.php';
+
+// TODO OPUSVIER-4420 remove after switching to Laminas/ZF3
+require_once APPLICATION_PATH . '/vendor/opus4-repo/framework/library/OpusDb/Mysqlutf8.php';
 
 // Zend_Application
 $config = new Zend_Config_Ini(

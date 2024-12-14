@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,9 +25,6 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Application_View_Helper
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2017, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
@@ -42,17 +40,26 @@
  */
 class Application_View_Helper_FormDocuments extends Zend_View_Helper_FormElement
 {
-
+    /**
+     * @param string     $name
+     * @param mixed|null $value
+     * @param array|null $attribs
+     * @param array|null $options
+     * @param string     $listsep
+     * @return string
+     */
     public function formDocuments($name, $value = null, $attribs = null, $options = null, $listsep = "<br />\n")
     {
         $info = $this->_getInfo($name, $value, $attribs, $options, $listsep);
+        // @phpcs:disable
         extract($info);
+        // @phpcs:enable
 
         if (! is_array($options)) {
             return '';
         }
 
-        if (is_null($value)) {
+        if ($value === null) {
             $value = [];
         } elseif (! is_array($value)) {
             $value = [$value];
@@ -76,7 +83,7 @@ class Application_View_Helper_FormDocuments extends Zend_View_Helper_FormElement
             $docHelper = new Application_Util_DocumentAdapter($this->view, $doc);
 
             $title = $docHelper->getDocTitle();
-            $year = null; // $docHelper->getYear();
+            $year  = null; // $docHelper->getYear();
 
             $xhtml .= "<div class=\"document-info\">\n";
 
@@ -84,7 +91,7 @@ class Application_View_Helper_FormDocuments extends Zend_View_Helper_FormElement
 
             $xhtml .= "<div class=\"document-title\">$title";
 
-            if (! is_null($year)) {
+            if ($year !== null) {
                 $xhtml .= " <span class='document-year'>($year)</span>";
             }
 
@@ -110,7 +117,7 @@ class Application_View_Helper_FormDocuments extends Zend_View_Helper_FormElement
 
                 $xhtml .= "<span class=\"author";
 
-                if (! is_null($personCrit) && $person->matches($personCrit)) {
+                if ($personCrit !== null && $person->matches($personCrit)) {
                     $xhtml .= " modified";
                 }
 
@@ -129,10 +136,10 @@ class Application_View_Helper_FormDocuments extends Zend_View_Helper_FormElement
                 $role = $person->getRole();
 
                 if ($role !== 'author' && $person->matches($personCrit)) {
-                    $roleLabel = $this->view->translate('Opus_Person_Role_Value_' .ucfirst($role));
-                    $xhtml .= "<div class=\"document-change\"><span class=\"role\">$roleLabel</span>";
-                    $xhtml .= "<span class=\"person modified\">{$person->getName()}</span>\n";
-                    $xhtml .= "</div>\n";
+                    $roleLabel = $this->view->translate('Opus_Person_Role_Value_' . ucfirst($role));
+                    $xhtml    .= "<div class=\"document-change\"><span class=\"role\">$roleLabel</span>";
+                    $xhtml    .= "<span class=\"person modified\">{$person->getName()}</span>\n";
+                    $xhtml    .= "</div>\n";
                 }
             }
 

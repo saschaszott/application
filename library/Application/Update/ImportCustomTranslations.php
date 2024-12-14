@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,21 +25,20 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Application_Update
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2019-2020, OPUS 4 development team
+ * @copyright   Copyright (c) 2019, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Console\ConsoleColors;
+use Opus\Translate\Dao;
+
 class Application_Update_ImportCustomTranslations extends Application_Update_PluginAbstract
 {
-
+    /** @var bool */
     private $removeFilesEnabled = true;
 
     /**
      * Performs import of custom translations and removal of old files.
-     * @return mixed
      */
     public function run()
     {
@@ -52,7 +52,7 @@ class Application_Update_ImportCustomTranslations extends Application_Update_Plu
 
         $files = $manager->getFiles();
 
-        $colors = new Opus_Util_ConsoleColors();
+        $colors = new ConsoleColors();
 
         if (count($files) > 0) {
             // Iterate through modules und TMX files in 'language_custom'
@@ -67,7 +67,7 @@ class Application_Update_ImportCustomTranslations extends Application_Update_Plu
         $this->log('Remove example.tmx.template files...');
         foreach ($modules as $module) {
             $path = APPLICATION_PATH . "/modules/$module/language_custom/example.tmx.template";
-            if (is_writeable($path)) {
+            if (is_writable($path)) {
                 $this->log("Removing $path");
                 if ($this->isRemoveFilesEnabled()) {
                     unlink($path);
@@ -75,7 +75,7 @@ class Application_Update_ImportCustomTranslations extends Application_Update_Plu
             }
         }
 
-        // Remove empry language_custom folders for all modules
+        // Remove empty language_custom folders for all modules
         $this->log(PHP_EOL . 'Remove empty \'language_custom\' directories...');
         foreach ($modules as $module) {
             $path = "/modules/$module/language_custom";
@@ -90,12 +90,13 @@ class Application_Update_ImportCustomTranslations extends Application_Update_Plu
 
     /**
      * Import TMX files in folder for module.
-     * @param $files
-     * @param $module
+     *
+     * @param array  $files
+     * @param string $module
      */
     public function importFolder($files, $module)
     {
-        $colors = new Opus_Util_ConsoleColors();
+        $colors = new ConsoleColors();
 
         foreach ($files as $filename) {
             $path = "/modules/$module/language_custom/$filename";
@@ -108,12 +109,12 @@ class Application_Update_ImportCustomTranslations extends Application_Update_Plu
 
             $translations = $tmx->toArray();
 
-            $database = new Opus_Translate_Dao();
+            $database = new Dao();
 
             $database->addTranslations($translations, $module);
 
             // Remove imported file
-            if (is_writeable($fullPath)) {
+            if (is_writable($fullPath)) {
                 unlink($fullPath);
                 $this->log("Removed file '$path'" . PHP_EOL);
             } else {
@@ -124,12 +125,13 @@ class Application_Update_ImportCustomTranslations extends Application_Update_Plu
 
     /**
      * Remove 'language_custom' folder if they are empty.
-     * @param $path
+     *
+     * @param string $path
      */
     public function removeFolder($path)
     {
-        $colors = new Opus_Util_ConsoleColors();
-        if (! (new \FilesystemIterator(APPLICATION_PATH . $path))->valid()) {
+        $colors = new ConsoleColors();
+        if (! (new FilesystemIterator(APPLICATION_PATH . $path))->valid()) {
             rmdir(APPLICATION_PATH . $path);
             $this->log("Removed folder '$path'");
         } else {
@@ -137,11 +139,17 @@ class Application_Update_ImportCustomTranslations extends Application_Update_Plu
         }
     }
 
+    /**
+     * @param bool $enabled
+     */
     public function setRemoveFilesEnabled($enabled)
     {
         $this->removeFilesEnabled = $enabled;
     }
 
+    /**
+     * @return bool
+     */
     public function isRemoveFilesEnabled()
     {
         return $this->removeFilesEnabled;

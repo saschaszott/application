@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,35 +25,35 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @package     Application_View_Helper
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2019, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
-class Application_View_Helper_Form_TranslationTest extends ControllerTestCase
-{
 
+class Application_View_Helper_FormTranslationTest extends ControllerTestCase
+{
+    /** @var string[] */
     protected $additionalResources = ['view', 'translation'];
 
     public function testRenderingMinimal()
     {
         $helper = new Application_View_Helper_FormTranslation();
-        $helper->setView(Zend_Registry::get('Opus_View'));
+        $helper->setView($this->getView());
 
         $output = $helper->formTranslation('DisplayName');
 
-        $this->assertTrue(strlen(trim($output)) == 0);
+        $this->assertTrue(strlen(trim($output)) === 0);
     }
 
     public function testRenderingOptions()
     {
+        $this->useEnglish();
+
         $helper = new Application_View_Helper_FormTranslation();
-        $helper->setView(Zend_Registry::get('Opus_View'));
+        $helper->setView($this->getView());
 
         $options = [
             'en' => 'English',
-            'de' => 'Deutsch'
+            'de' => 'Deutsch',
         ];
 
         $output = $helper->formTranslation('DisplayName', null, null, $options);

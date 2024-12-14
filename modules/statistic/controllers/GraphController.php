@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,17 +25,19 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Module_Statistic
- * @author      Birgit Dressler (b.dressler@sulb.uni-saarland.de)
  * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
- * @version     $Id$
  */
+
+use Opus\Statistic\LocalCounter;
 
 class Statistic_GraphController extends Application_Controller_Action
 {
-
+    /**
+     * @param string $title
+     * @param array  $dataPdf
+     * @param array  $dataFrontdoor
+     */
     protected function buildGraph($title, $dataPdf, $dataFrontdoor)
     {
     }
@@ -46,9 +49,6 @@ class Statistic_GraphController extends Application_Controller_Action
 
     /**
      * Generate PNG file that shows graph with year overview
-     *
-     * @return void
-     *
      */
     public function yearAction()
     {
@@ -60,10 +60,10 @@ class Statistic_GraphController extends Application_Controller_Action
 
             throw new Exception("Parameter id must be set.");
         }
-        $dataPdf = Opus_Statistic_LocalCounter::getInstance()->readYears($id);
-        $dataFrontdoor = Opus_Statistic_LocalCounter::getInstance()->readYears($id, 'frontdoor');
-        $years = array_merge(array_keys($dataFrontdoor), array_keys($dataPdf));
-        if (count($years) == 0) {
+        $dataPdf       = LocalCounter::getInstance()->readYears($id);
+        $dataFrontdoor = LocalCounter::getInstance()->readYears($id, 'frontdoor');
+        $years         = array_merge(array_keys($dataFrontdoor), array_keys($dataPdf));
+        if (count($years) === 0) {
             $years = [date('Y')];
         }
         foreach ($years as $year) {
@@ -92,9 +92,6 @@ class Statistic_GraphController extends Application_Controller_Action
 
     /**
      * Generate PNG file that shows graph with month overview
-     *
-     * @return void
-     *
      */
     public function monthAction()
     {
@@ -105,8 +102,8 @@ class Statistic_GraphController extends Application_Controller_Action
             //TODO: create own exception
             throw new Exception("Parameter id must be set.");
         }
-        $dataPdf = Opus_Statistic_LocalCounter::getInstance()->readMonths($id);
-        $dataFrontdoor = Opus_Statistic_LocalCounter::getInstance()->readMonths($id, 'frontdoor');
+        $dataPdf       = LocalCounter::getInstance()->readMonths($id);
+        $dataFrontdoor = LocalCounter::getInstance()->readMonths($id, 'frontdoor');
 
         for ($i = 1; $i < 13; $i++) {
             if (isset($dataPdf[$i]) === false) {
@@ -133,12 +130,8 @@ class Statistic_GraphController extends Application_Controller_Action
         $graph->drawGraph();
     }
 
-
     /**
      * Generate PNG file that shows graph for thumbnail
-     *
-     * @return void
-     *
      */
     public function thumbAction()
     {
@@ -153,7 +146,7 @@ class Statistic_GraphController extends Application_Controller_Action
         //TODO maybe there is a more elegant way to do this!?
         $layoutPath = $this->view->layout()->getLayoutPath();
 
-        $graph = new Statistic_Model_StatisticGraphThumb([90,150,30], $layoutPath . '/img/statistics_bg.jpg');
+        $graph = new Statistic_Model_StatisticGraphThumb([90, 150, 30], $layoutPath . '/img/statistics_bg.jpg');
         $graph->drawGraph();
     }
 }

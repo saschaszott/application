@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -25,27 +25,33 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @author      Michael Lang <lang@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
- *
- * TODO statt der Redirect Prüfung (für Access) eine Funktion definieren (assertNoAccess)
  */
 
+/**
+ * TODO statt der Redirect Prüfung (für Access) eine Funktion definieren (assertNoAccess)
+ */
 abstract class AccessModuleAdminOneResourceOnlyTest extends ControllerTestCase
 {
-
+    /** @var bool */
     protected $configModifiable = true;
 
-    protected $additionalResources = ['authz', 'database', 'view', 'mainMenu', 'navigation', 'translation'];
+    /** @var string[] */
+    protected $additionalResources = ['database', 'view', 'mainMenu', 'navigation', 'translation'];
 
+    /** @var array */
     private $acls = [
-        'module_admin' => false,
+        'module_admin'     => false,
         'indexmaintenance' => false,
-        'job' => false
+        'job'              => false,
     ];
 
+    /**
+     * @param string     $username
+     * @param string     $password
+     * @param null|array $acls
+     */
     public function setUpTests($username, $password, $acls = null)
     {
         $this->enableSecurity();
@@ -53,13 +59,17 @@ abstract class AccessModuleAdminOneResourceOnlyTest extends ControllerTestCase
         $this->loginUser($username, $password);
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         $this->logoutUser();
         $this->restoreSecuritySetting();
         parent::tearDown();
     }
 
+    /**
+     * @param string $xpath
+     * @param bool   $present
+     */
     private function assertElement($xpath, $present = true)
     {
         if ($present) {

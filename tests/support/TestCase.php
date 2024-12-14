@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,29 +25,34 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Config;
+use Opus\Common\Log;
 
 /**
  * Base class for application tests.
  *
  * TODO any effect vvv ?
+ *
  * @preserveGlobalState disabled
  */
 class TestCase extends Zend_Test_PHPUnit_ControllerTestCase
 {
-
+    /** @var Zend_Application */
     protected $application;
 
+    /** @var string */
     protected $applicationEnv = APPLICATION_ENV;
 
+    /** @var bool */
     protected $configModifiable = false;
 
     /**
      * Allows specifying additional resources that should be loaded during bootstrapping, e.g. 'database'.
+     *
      * @var string|array
      */
     protected $additionalResources;
@@ -54,15 +60,13 @@ class TestCase extends Zend_Test_PHPUnit_ControllerTestCase
     /**
      * Overwrite standard setUp method, no database connection needed.  Will
      * create a file listing of class files instead.
-     *
-     * @return void
      */
-    public function setUp()
+    public function setUp(): void
     {
         $this->cleanupBefore();
 
         $this->application = $this->getApplication();
-        $this->bootstrap = [$this, 'appBootstrap'];
+        $this->bootstrap   = [$this, 'appBootstrap'];
 
         parent::setUp();
 
@@ -71,7 +75,7 @@ class TestCase extends Zend_Test_PHPUnit_ControllerTestCase
         }
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         $this->application = null; // IMPORTANT: this helps reduce memory usage when running lots of tests
 
@@ -89,18 +93,22 @@ class TestCase extends Zend_Test_PHPUnit_ControllerTestCase
         $this->resetAutoloader();
     }
 
+    /**
+     * @return Zend_Application
+     * @throws Zend_Application_Exception
+     */
     public function getApplication()
     {
         return new Zend_Application(
             $this->applicationEnv,
-            ["config" => [
-                APPLICATION_PATH . '/tests/simple.ini'
-            ]]
+            [
+                "config" => [
+                    APPLICATION_PATH . '/tests/simple.ini',
+                ],
+            ]
         );
     }
 
-    /**
-     */
     public function appBootstrap()
     {
         $resources = ['configuration', 'logging', 'modules'];
@@ -136,22 +144,29 @@ class TestCase extends Zend_Test_PHPUnit_ControllerTestCase
      */
     protected function closeLogfile()
     {
-        if (! Zend_Registry::isRegistered('Zend_Log')) {
-            return;
-        }
+        $log = Log::get();
 
-        $log = Zend_Registry::get('Zend_Log');
         if (isset($log)) {
             $log->__destruct();
-            Zend_Registry::set('Zend_Log', null);
         }
 
-        Opus_Log::drop();
+        Log::drop();
     }
 
+    /**
+     * TODO adjustConfiguration also makes it configurable - so maybe not needed anymore
+     */
     public function makeConfigurationModifiable()
     {
         $config = new Zend_Config([], true);
-        Zend_Registry::set('Zend_Config', $config->merge(Zend_Registry::get('Zend_Config')));
+        Config::set($config->merge(Config::get()));
+    }
+
+    /**
+     * @return Zend_Config
+     */
+    protected function getConfig()
+    {
+        return Config::get();
     }
 }

@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,41 +25,35 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Tests
- * @package     Export
- * @author      Sascha Szott <opus-development@saschaszott.de>
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2019, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Model\ModelException;
+
 class Export_Marc21ExportTest extends ControllerTestCase
 {
-
+    /** @var string */
     protected $additionalResources = 'all';
 
     /**
      * Nicht freigeschaltete Dokumente können nur dann im Format MARC21-XML exportiert werden,
      * wenn der Benutzer das Recht 'resource_documents' besitzt.
      *
-     * @throws Opus_Model_Exception
+     * @throws ModelException
      * @throws Zend_Exception
      */
     public function testMarc21XmlExportWithUnpublishedDocNotAllowed()
     {
         $removeAccess = $this->addModuleAccess('export', 'guest');
         $this->enableSecurity();
-        $config = Zend_Registry::get('Zend_Config');
-
-        Zend_Registry::get('Zend_Config')->merge(
-            new Zend_Config(
-                ['plugins' =>
-                    ['export' =>
-                        ['marc21' => ['adminOnly' => self::CONFIG_VALUE_FALSE]]
-                    ]
-                ]
-            )
-        );
+        $this->adjustConfiguration([
+            'plugins'
+                => [
+                    'export'
+                    => ['marc21' => ['adminOnly' => self::CONFIG_VALUE_FALSE]],
+                ],
+        ]);
 
         $doc = $this->createTestDocument();
         $doc->setServerState('unpublished');
@@ -68,11 +63,11 @@ class Export_Marc21ExportTest extends ControllerTestCase
 
         Application_Security_AclProvider::init();
 
-        $this->dispatch("/export/index/marc21/docId/${docId}/searchtype/id");
+        $this->dispatch("/export/index/marc21/docId/{$docId}/searchtype/id");
 
         // revert configuration changes
         $this->restoreSecuritySetting();
-        Zend_Registry::set('Zend_Config', $config);
+
         if ($removeAccess) {
             $this->removeModuleAccess('export', 'guest');
         }
@@ -84,17 +79,13 @@ class Export_Marc21ExportTest extends ControllerTestCase
     public function testMarc21XmlExportWithUnpublishedDocAllowedForAdmin()
     {
         $this->enableSecurity();
-        $config = Zend_Registry::get('Zend_Config');
-
-        Zend_Registry::get('Zend_Config')->merge(
-            new Zend_Config(
-                ['plugins' =>
-                    ['export' =>
-                        ['marc21' => ['adminOnly' => self::CONFIG_VALUE_FALSE]]
-                    ]
-                ]
-            )
-        );
+        $this->adjustConfiguration([
+            'plugins'
+                => [
+                    'export'
+                    => ['marc21' => ['adminOnly' => self::CONFIG_VALUE_FALSE]],
+                ],
+        ]);
 
         $doc = $this->createTestDocument();
         $doc->setServerState('unpublished');
@@ -104,11 +95,10 @@ class Export_Marc21ExportTest extends ControllerTestCase
 
         $this->loginUser('admin', 'adminadmin');
 
-        $this->dispatch("/export/index/marc21/docId/${docId}/searchtype/id");
+        $this->dispatch("/export/index/marc21/docId/{$docId}/searchtype/id");
 
         // revert configuration changes
         $this->restoreSecuritySetting();
-        Zend_Registry::set('Zend_Config', $config);
 
         $this->assertResponseCode(200);
         $this->assertXpathContentContains('//marc:leader', '00000naa a22000005  4500');
@@ -126,17 +116,13 @@ class Export_Marc21ExportTest extends ControllerTestCase
     {
         $removeAccess = $this->addModuleAccess('export', 'docsadmin');
         $this->enableSecurity();
-        $config = Zend_Registry::get('Zend_Config');
-
-        Zend_Registry::get('Zend_Config')->merge(
-            new Zend_Config(
-                ['plugins' =>
-                    ['export' =>
-                        ['marc21' => ['adminOnly' => self::CONFIG_VALUE_FALSE]]
-                    ]
-                ]
-            )
-        );
+        $this->adjustConfiguration([
+            'plugins'
+                => [
+                    'export'
+                    => ['marc21' => ['adminOnly' => self::CONFIG_VALUE_FALSE]],
+                ],
+        ]);
 
         $doc = $this->createTestDocument();
         $doc->setServerState('unpublished');
@@ -146,11 +132,11 @@ class Export_Marc21ExportTest extends ControllerTestCase
 
         $this->loginUser('security8', 'security8pwd');
 
-        $this->dispatch("/export/index/marc21/docId/${docId}/searchtype/id");
+        $this->dispatch("/export/index/marc21/docId/{$docId}/searchtype/id");
 
         // revert configuration changes
         $this->restoreSecuritySetting();
-        Zend_Registry::set('Zend_Config', $config);
+
         if ($removeAccess) {
             $this->removeModuleAccess('export', 'docsadmin');
         }
@@ -171,17 +157,14 @@ class Export_Marc21ExportTest extends ControllerTestCase
     {
         $removeAccess = $this->addModuleAccess('export', 'guest');
         $this->enableSecurity();
-        $config = Zend_Registry::get('Zend_Config');
 
-        Zend_Registry::get('Zend_Config')->merge(
-            new Zend_Config(
-                ['plugins' =>
-                    ['export' =>
-                        ['marc21' => ['adminOnly' => self::CONFIG_VALUE_TRUE]]
-                    ]
-                ]
-            )
-        );
+        $this->adjustConfiguration([
+            'plugins' => [
+                'export' => [
+                    'marc21' => ['adminOnly' => self::CONFIG_VALUE_TRUE],
+                ],
+            ],
+        ]);
 
         $doc = $this->createTestDocument();
         $doc->setServerState('published');
@@ -189,11 +172,11 @@ class Export_Marc21ExportTest extends ControllerTestCase
         $doc->setLanguage('eng');
         $docId = $doc->store();
 
-        $this->dispatch("/export/index/marc21/docId/${docId}/searchtype/id");
+        $this->dispatch("/export/index/marc21/docId/{$docId}/searchtype/id");
 
         // revert configuration changes
         $this->restoreSecuritySetting();
-        Zend_Registry::set('Zend_Config', $config);
+
         if ($removeAccess) {
             $this->removeModuleAccess('export', 'guest');
         }
@@ -206,17 +189,14 @@ class Export_Marc21ExportTest extends ControllerTestCase
     {
         $removeAccess = $this->addModuleAccess('export', 'docsadmin');
         $this->enableSecurity();
-        $config = Zend_Registry::get('Zend_Config');
 
-        Zend_Registry::get('Zend_Config')->merge(
-            new Zend_Config(
-                ['plugins' =>
-                    ['export' =>
-                        ['marc21' => ['adminOnly' => self::CONFIG_VALUE_TRUE]]
-                    ]
-                ]
-            )
-        );
+        $this->adjustConfiguration([
+            'plugins'
+                => [
+                    'export'
+                    => ['marc21' => ['adminOnly' => self::CONFIG_VALUE_TRUE]],
+                ],
+        ]);
 
         $doc = $this->createTestDocument();
         $doc->setServerState('published');
@@ -226,11 +206,11 @@ class Export_Marc21ExportTest extends ControllerTestCase
 
         $this->loginUser('security8', 'security8pwd');
 
-        $this->dispatch("/export/index/marc21/docId/${docId}/searchtype/id");
+        $this->dispatch("/export/index/marc21/docId/{$docId}/searchtype/id");
 
         // revert configuration changes
         $this->restoreSecuritySetting();
-        Zend_Registry::set('Zend_Config', $config);
+
         if ($removeAccess) {
             $this->removeModuleAccess('export', 'docsadmin');
         }
@@ -253,17 +233,14 @@ class Export_Marc21ExportTest extends ControllerTestCase
     {
         $removeAccess = $this->addModuleAccess('export', 'guest');
         $this->enableSecurity();
-        $config = Zend_Registry::get('Zend_Config');
 
-        Zend_Registry::get('Zend_Config')->merge(
-            new Zend_Config(
-                ['plugins' =>
-                    ['export' =>
-                        ['marc21' => ['adminOnly' => self::CONFIG_VALUE_FALSE]]
-                    ]
-                ]
-            )
-        );
+        $this->adjustConfiguration([
+            'plugins'
+                => [
+                    'export'
+                    => ['marc21' => ['adminOnly' => self::CONFIG_VALUE_FALSE]],
+                ],
+        ]);
 
         $doc = $this->createTestDocument();
         $doc->setServerState('published');
@@ -271,11 +248,11 @@ class Export_Marc21ExportTest extends ControllerTestCase
         $doc->setLanguage('eng');
         $docId = $doc->store();
 
-        $this->dispatch("/export/index/marc21/docId/${docId}/searchtype/id");
+        $this->dispatch("/export/index/marc21/docId/{$docId}/searchtype/id");
 
         // revert configuration changes
         $this->restoreSecuritySetting();
-        Zend_Registry::set('Zend_Config', $config);
+
         if ($removeAccess) {
             $this->removeModuleAccess('export', 'guest');
         }
@@ -298,17 +275,14 @@ class Export_Marc21ExportTest extends ControllerTestCase
     {
         $removeAccess = $this->addModuleAccess('export', 'collectionsadmin');
         $this->enableSecurity();
-        $config = Zend_Registry::get('Zend_Config');
 
-        Zend_Registry::get('Zend_Config')->merge(
-            new Zend_Config(
-                ['plugins' =>
-                    ['export' =>
-                        ['marc21' => ['adminOnly' => self::CONFIG_VALUE_FALSE]]
-                    ]
-                ]
-            )
-        );
+        $this->adjustConfiguration([
+            'plugins'
+                => [
+                    'export'
+                    => ['marc21' => ['adminOnly' => self::CONFIG_VALUE_FALSE]],
+                ],
+        ]);
 
         $doc = $this->createTestDocument();
         $doc->setServerState('unpublished');
@@ -318,11 +292,11 @@ class Export_Marc21ExportTest extends ControllerTestCase
 
         $this->loginUser('security9', 'security9pwd');
 
-        $this->dispatch("/export/index/marc21/docId/${docId}/searchtype/id");
+        $this->dispatch("/export/index/marc21/docId/{$docId}/searchtype/id");
 
         // revert configuration changes
         $this->restoreSecuritySetting();
-        Zend_Registry::set('Zend_Config', $config);
+
         if ($removeAccess) {
             $this->removeModuleAccess('export', 'collectionsadmin');
         }

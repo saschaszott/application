@@ -1,18 +1,497 @@
 # OPUS 4 Release Notes
 
-## Release 4.7.0.5 2020-08-17
+## Patch Release 4.8.0.8 - 2024-12-04
 
-Dieser Patch Release behebt zwei kleinere Bugs. Das Editieren der Inhalte der 
-Impressum und Kontakt-Seite ist nun auch von der FAQ-Seite aus ohne Probleme beim 
+Das Blockieren der Enter/Return-Taste wurde auf die Metadaten-Formulare 
+im Publish-Modul und in der Administration beschränkt. In allen anderen
+Formularen verhält sich die Taste daher wieder wie vor OPUS 4.8.0.7.
+
+https://github.com/OPUS4/application/issues/1258
+
+Es wurden neue Konsolen-Kommandos für den Umgang mit Enrichments hinzugefügt.
+Alle OPUS 4 Kommandos können mit `bin/opus4` angezeigt werden. Das Kommando
+`enrichment:import` kann zum Beispiel verwendet werden, um in einer Yaml-Datei 
+definierte Enrichments anzulegen. Beispiele für solche Konfigurationen finden 
+sich in `tests/resources/enrichments`.
+
+https://github.com/OPUS4/application/issues/1253
+
+### Hinweise zum Update auf OPUS 4.8.0.8
+
+Das Update kann mit `git pull` vorgenommen werden. Es ist `php-yaml` als neue
+Abhängigkeit dazu gekommen. Das Paket muss manuell installiert werden. Danach 
+ist ein `composer update` notwendig. 
+
+## Patch Release 4.8.0.7 - 2024-10-22
+
+Ein Fehler beim Drücken der Enter/Return-Taste in einfachen Text-Feldern 
+des Publish-Formulars wurde korrigiert. Bisher wurde dabei unabsichtlich der 
+erste Submit-Button des Formulars ausgeführt und damit unter Umständen ein 
+neuer Eintrag für Autor*innen oder ähnliches hinzugefügt. Jetzt passiert das 
+nicht mehr. Das sorgt auch dafür, dass das Metadaten-Formular in der 
+Administration nicht mehr abgespeichert wird, wenn in einem einfachen 
+Text-Eingabefeld die Enter/Return-Taste gedrückt wird.
+
+https://github.com/OPUS4/application/issues/1243
+
+## Patch Release 4.8.0.6 - 2024-08-27
+
+Problem bei der Ausführung von PHP Update-Skripten behoben.
+https://github.com/OPUS4/application/issues/992
+
+## Patch Release 4.8.0.5 - 2024-03-12
+
+Problem auf manchen Systemen bei der Anzeige von `BelongsToBibliography` 
+("Bibl.") in der Dokumentenverwaltung behoben. 
+https://github.com/OPUS4/application/issues/1190
+
+## Patch Release 4.8.0.4 - 2024-01-09
+
+Fehler beim Löschen mehrerer Dateien von einem Dokument behoben.
+https://github.com/OPUS4/application/issues/1174
+
+### Review-Modul
+
+Beim Freischalten im Review-Modul, bekommt die Rolle **guest** automatisch
+Zugriff auf die Dateien, der freigeschalteten Dokumente. Das kann nun mit
+einer neuen Option (`workflow.stateChange.published.addGuestAccess = 0`) 
+abgeschaltet werden. 
+https://github.com/OPUS4/application/issues/1176
+
+In der Standardkonfiguration ist die Option aktiviert, um in einem Patch 
+Release, das Verhalten von OPUS 4 nicht zu verändern. In einer kommenden 
+Version wird sich der Defaultwert vermutlich ändern.
+
+Die Zugriffsrechte auf die Dateien werden beim Freischalten einzelner 
+Dokumente in der Administration nicht verändert, unabhängig von der neuen 
+Option. Das Verhalten der verschiedenen Möglichkeiten zur Freigabe wird in
+Zukunft vereinheitlicht werden.
+https://github.com/OPUS4/application/issues/1177
+
+## Patch Release 4.8.0.3 - 2023-11-28
+
+Das `bin/opus4` Kommandozeilentool wurde um zwei Kommandos erweitert.
+
+- document:duplicates
+- document:diff
+
+Hilfe zu den Kommandos kann mit `help` angezeigt werden. Die Namen 
+der Kommandos können abgekürzt werden.
+
+    $ bin/opus4 help doc:dup
+
+`Document:duplicates` dient dazu Dokumente zu mehrfach auftauchenden 
+DOI-Werten zu finden. Die zu prüfenden DOIs können angegeben oder die 
+gesamte Datenbank durchsucht werden. Es kann ein Report im CSV Format
+generiert werden, der Links zu den gefundenen Dokumenten enthält.
+
+`Document:diff` zeigt die Unterschiede zwischen Dokumenten. Die IDs 
+von Dokumenten können direkt angegeben werden oder es kann mit einer 
+DOI nach Dokumenten gesucht werden.
+
+Vorschläge und Hinweise zu den Kommandos können gerne auf GitHub oder
+in der OPUS 4 Tester Mailingliste eingebracht werden.
+
+https://github.com/orgs/OPUS4/discussions
+
+## Patch Release 4.8.0.2 - 2023-08-29
+
+Es wurde ein Fehler bei der Javascript-Validierung von ISSNs behoben. 
+https://github.com/OPUS4/application/issues/1098
+
+## Patch Release 4.8.0.1 - 2023-08-15
+
+Es wurde ein Fehler behoben, bei dem Personen im Metadaten-Formular 
+unter Umständen nicht mehr angezeigt wurden.
+
+https://github.com/OPUS4/application/issues/1068
+
+### BibTeX-Import
+
+Außerdem wurde der BibTeX-Import erweitert. Beim Mapping von Titeln
+kann jetzt die Sprache angegeben werden und es kann auf alle Titel-Typen
+gemappt werden. 
+
+https://github.com/OPUS4/opus4-bibtex/issues/67
+
+In Personen-Feldern können nun Identifier mit angegeben werden.
+
+https://github.com/OPUS4/opus4-bibtex/issues/69
+
+Die Personen-Rolle in OPUS 4 kann jetzt im Mapping konfiguriert werden,
+damit der BibTeX-Feldname nicht mehr mit der Rolle übereinstimmen muss.
+
+https://github.com/OPUS4/opus4-bibtex/issues/70
+
+Für weitere Änderungen am OPUS4-BibTeX Package, siehe hier: 
+https://github.com/OPUS4/opus4-bibtex/releases/tag/4.8.0.1
+
+## Release 4.8 - 2023-04-25
+
+Für diesen Release wurden sehr viele Änderungen am Code von OPUS 4 
+vorgenommen, insbesondere für den Support von PHP 8.1 und die weitere
+Vorbereitung des Umstiegs auf Doctrine und Laminas. Trotz intensiver
+manueller Tests durch die Hosting-Teams und einer umfangreichen 
+Abdeckung mit Unit-Tests, kann es Probleme geben, die bisher nicht 
+aufgefallen sind. Etwaige Schwierigkeiten am besten auf GitHub melden.  
+
+https://github.com/orgs/OPUS4/discussions
+
+### PHP 8 Kompatibilität
+
+OPUS 4.8 wurde mit PHP 7.1 und PHP 8.1 getestet. Diese Version ist noch 
+nicht mit PHP 8.2 kompatibel. PHP 8.1 wird bis November 2024 mit 
+Sicherheitsupdates versorgt.
+
+Voraussichtlich wird mit OPUS 4.9 die Kompatibilität zu PHP 7.1 fallen, 
+um für die Weiterentwicklung die neuesten Versionen der verwendeten 
+Libraries nutzen zu können. Damit wird dann auch der Support von PHP 8.2
+möglich sein.
+
+### CrossRef-Import im Publish-Formular
+
+Es gibt einen neuen Dokumenttypen **DOI**, bei dem im Publish-Formular 
+eine DOI eingeben werden kann, um das Formular automatisch mit Metadaten 
+von CrossRef zu befüllen. Diese Funktionalität benötigt Javascript im 
+Browser. 
+
+Für die Kommunikation mit der CrossRef-API sollte in der OPUS 4
+Konfiguration eine E-Mail-Adresse angegeben werden, die es CrossRef 
+erlaubt den Repository Betreiber zu kontaktieren, falls die eingehenden 
+Requests Probleme verursachen sollten. 
+
+    crossref.mailTo = ''
+
+Mehr dazu findet sich in der Dokumentation der CrossRef-API:
+https://github.com/CrossRef/rest-api-doc#etiquette
+
+### Frontdoor
+
+GND-Schlagwörter mit ExternalKey werden in der Frontdoor nun mit Link 
+zur GND angezeigt, so wie das für Autoren auch vorher schon passierte.
+
+### Enrichments
+
+Die maximale Größe für Optionen von EnrichmentKeys wurde auf 15000 erhöht,
+um längere Select-Listen zu erlauben. Das ist eine temporäre Maßnahme. Das 
+Enrichment-System wird sich mit dem Umbau der Datenbankanbindung weiter 
+verändern und ausgebaut.
+
+### Erweiterungen des 'opus4' Konsolen-Tools (bin/opus4)
+
+Es wurden ein Kommando `cover:generate` hingefügt, dass während der Arbeiten 
+an einem PDF-Deckblatt-Template, zu Testzwecken verwendet werden kann.
+
+Das `Index`-Kommando wurde erweitert, um die Indexierung auf Dokumente einer 
+Sammlung beschränken zu können. Das kann nützlich sein, wenn Sammlungen 
+direkt in der Datenbank angepasst wurden.
+
+Mit `debug:xml` kann nun das interne XML für ein Dokument ausgegeben werden. 
+Das kann bei Arbeiten am XSLT und bei der Fehleranalyse nützlich sein.
+
+Eine Liste aller Kommandos lässt sich mit `bin/opus4` anzeigen. Weitere Hilfe 
+zu einem Kommando erhält man mit `help`, also z.B. `bin/opus4 help index`. 
+
+### PDF-Deckblätter
+
+Es wurde die Möglichkeit hinzugefügt mit auf LateX-basierenden Templates
+automatisch Deckblätter für PDF-Dateien zu generieren. 
+
+Weitere Informationen 
+https://github.com/OPUS4/opus4-pdf
+
+### Vorarbeiten für Umstieg auf Doctrine und Laminas
+
+Im gesamten Code wurden viele der direkten Abhängigkeiten auf die Klassen 
+der aktuellen Framework-Implementation beseitigt. Dafür wurden zahlreiche 
+neue Klassen und Interfaces in **opus4-common** hinzugefügt. Lokaler Code
+muss unter Umständen entsprechend angepasst werden.
+
+--
+
+## Patch Release 4.7.1.2 - 2022-12-13
+
+ORCID und GND-ID werden jetzt in XMetaDissPlus für die Rollen `Author`,
+`Advisor`, `Referee` and `Editor` ausgegeben. 
+
+Ein Bug, der beim seitenweisen Export von Suchergebnissen unter Umständen
+für eine leere Export-Datei gesorgt hat, wurde beseitigt.
+
+--
+
+## Patch Release 4.7.1.1 - 2022-07-12
+
+Die Sprachen im Konfigurationsparameter `supportedLanguages` werden nun 
+automatisch getrimmt, um Leerzeichen zu entfernen. Die Leerzeichen hätten 
+Probleme beim Update verursachen können, wenn Namen für CollectionRoles 
+mit Sonderzeichen bereinigt werden müssen. Die Bereinigung wurde bereits 
+mit OPUS 4.7 ins Update integriert. 
+
+Für 4.7.1 Instanzen ist diese Änderung nicht relevant und kann einfach 
+mit `git pull` übernommen werden. Ältere Instanzen müssten dem normalen
+Update-Prozess folgen.
+
+---
+
+## Release 4.7.1 2022-03-24
+
+### Anforderungen
+
+OPUS 4.7.1 erfordert weiterhin PHP 7.1 bzw. eine Version vor PHP 7.2. Durch 
+die Verwendung von Zend Framework 1 ist OPUS 4 nicht kompatibel mit neueren
+PHP Versionen. Diese werden erst nach dem vollständigen Umstieg auf Laminas
+mit OPUS 4 v5.0 unterstützt werden. 
+
+### Installation
+
+Die Installation von Apache Solr wurde aus den Installationsskripten entfernt.
+Für den produktiven Betrieb sollte Solr entsprechend den Empfehlungen der
+Apache Solr Dokumentation installiert werden.
+
+<https://solr.apache.org/guide/7_2/taking-solr-to-production.html>
+
+OPUS 4.7.1 ist mit Apache Solr 7.7.2 getestet. Der Umstieg auf Solr 8 ist 
+nach dem Umstieg auf Laminas geplant.
+
+Die Integration in die Installationsskripte war vor allem für Test-Installationen
+gedacht. Tests sind nun mit dem Einsatz von Vagrant leichter geworden.
+
+### Testen mit Vagrant
+
+Mit Vagrant (<https://www.vagrantup.com/>) und dem `Vagrantfile` in OPUS 4 
+Application lässt sich eine Virtuelle Maschine hochfahren in der ein vollständiges 
+OPUS 4 läuft. Informationen dazu finden sich im Wiki. 
+
+<https://github.com/OPUS4/application/wiki/Vagrant>
+
+Damit kann man OPUS 4, auch Entwicklungsversionen, unter Linux, Mac OS-X
+oder auch Windows laufen lassen, z.B. um neue Funktionen zu testen oder
+an Anpassungen zu arbeiten.
+
+### User Interface "Experimente"
+
+Das Formular für den Import von BibTeX-Dateien verwendet ein neues Eingabefeld
+für die Auswahl von Sammlungen. Es funktioniert wie ein Suchfeld für Sammlungen,
+die dann direkt ausgewählt werden können. Bei der Suche werden der Name und die
+Nummer von Sammlungen berücksichtigt. 
+
+Auch wenn man den BibTeX-Import nicht nutzen möchte, lohnt es sich vielleicht das
+Eingabefeld zu testen. Das Formularelement muss noch weiter ausgebaut werden. 
+Es soll aber später auch im neuen Publish-Modul und im Metadaten-Formular verwendet 
+werden. Feedback kann in folgendem GitHub Issue oder über die Tester-Mailing-Liste 
+gegeben werden.
+
+<https://github.com/OPUS4/application/issues/500>
+
+### Konfiguration
+
+Der Parameter `url` kann verwendet werden, um die absolute URL für eine OPUS 4
+Instanz manuell zu setzen. Diese URL wird dann verwendet, um absolute Links,
+z.B. in Exporten oder E-Mails, zu generieren.
+
+url = 'https://opus4mig.kobv.de/opus4-demo'
+
+__URLs mit Port werden momentan nicht unterstützt.__
+
+### Betrieb mit Proxy
+
+Es wurden eine Reihe von Problemen beim Betrieb von OPUS 4 mit einem Proxy-Server
+behoben, hauptsächlich das korrekte Rendern von URLs in Exports. Der Betrieb mit
+einem Proxy sollte nun ohne Einschränkungen möglich sein.
+
+### Neues Kommandozeilen-Skript `bin/opus4`
+
+Es gibt das neue Skript `bin/opus4`, dass in Zukunft die Rolle des zentralen OPUS 4
+Werkzeugs auf der Kommandozeile übernehmen wird. Mit dem Kommando `list` lassen sich
+die bisher integrierten Kommandos anzeigen. Mit `help` lassen sich Informationen zu
+einzelnen Kommandos abrufen.
+
+    $ bin/opus4 list
+    $ bin/opus4 help index:index
+
+Es sind noch nicht alle alten Skripte in Kommandos umgewandelt worden.
+
+### Wartung des Solr-Index
+
+Das Skript `script/SolrIndexBuilder.php` wurde durch `bin/opus4` ersetzt. Dadurch
+soll der Aufruf vereinfacht werden. Das neue Skript soll außerdem in Zukunft auch
+andere Funktionen übernehmen, die nichts mit dem Index zu tun haben.
+
+Im OPUS 4 Handbuch gibt es eine neue Seite, die die Funktionen des Skripts für
+den Index beschreibt.
+
+<http://www.opus-repository.org//userdoc/search/maintenance.html>
+
+Es gibt jetzt die Möglichkeit einzelne Dokumente einfacher zu indexieren oder auch
+aus dem Index zu entfernen. Es kann über eine Option bestimmt werden wie viele
+Dokumente gleichzeitig zum Solr-Server geschickt werden sollen. Das kann helfen,
+wenn es Probleme bei der Indexierung gibt.
+
+### Export
+
+Die beiden Variablen `host` und `server` in den Export-XSLT Skripten wurden durch
+die Variable `opusUrl` ersetzt. Eigene Skripte, die diese Variablen einsetzen,
+müssen angepasst werden. Die neue Variable `opusUrl` enthält die absolute URL für
+die OPUS 4 Instanz.
+
+### BibTeX-Import
+
+OPUS 4 erlaubt nun den Import von Dokumentmetadaten aus BibTeX-Dateien. Der Import
+ist bisher auf Administratoren beschränkt. Der Import einer BibTeX-Datei kann auf
+der Kommandozeile mit dem Befehl
+
+    $ bin/opus4 bibtex:import <filename.bib>
+
+aufgerufen werden. Es können hierbei mehrere Optionen angegeben werden. Die Auflistung
+der verfügbaren Optionen ist mit folgendem Befehl möglich.
+
+    $ bin/opus4 help bibtex:import
+
+Der BibTeX-Import kann auch über die Weboberfläche von OPUS 4 aufgerufen werden.
+In der Dokumentenverwaltung gibt es dazu einen entsprechenden Button _BibTeX-Import_. 
+Das Webformular in der Administration für den Import von BibTeX-Dateien bietet 
+sämtliche Optionen an, die auch auf der Kommandozeile verwendet werden können.
+
+#### Anforderungen für BibTeX-Import
+
+Für die Ausführung des BibTeX-Imports, insbesondere die Umwandlung von LaTeX-codierten
+Sonderzeichen (z. B. Umlaute) in ihren Unicode-Entsprechungen, wird das Programm 
+**Pandoc** benötigt. Das BibTeX-Import-Feature wurde ausführlich mit Pandoc 2.9 
+getestet, welches mit den aktuellen Ubuntu-Versionen (2020.10 und 2021.04) über die 
+Paketverwaltung installiert werden kann. Es wird empfohlen möglichst die neueste 
+Version von Pandoc (2.17+) zu installieren.
+
+<https://pandoc.org/>
+
+Nach dem Import einer BibTeX-Datei (sowohl über CLI als auch das Webformular) wird 
+ein Protokoll über die Verarbeitungsschritte ausgegeben, aus dem u. a. hervorgeht, 
+wie viele BibTeX-Einträge aus der zu importierenden Daten erfolgreich in die OPUS 4 
+Datenbank übernommen wurden. Im Falle von Verarbeitungsfehlern erfolgt an dieser 
+Stelle eine Ausgabe mit weiteren Details zur späteren Nachverfolgung.
+
+Im OPUS 4 Handbuch gibt es eine neue Seite, auf der die Optionen des CLI-Befehls für
+den BibTeX-Import ausführlich beschrieben werden:
+
+<http://www.opus-repository.org/userdoc/import/bibtex.html>
+
+### SWORD Import
+
+Nach dem Import über die SWORD-Schnittstelle werden die übertragenen Pakete gelöscht.
+Das erfolgt nicht mehr automatische, wenn beim Import Probleme aufgetreten sind, damit 
+diese leichter analysiert und behoben werden können.
+
+### Deckblätter für PDF-Downloads
+
+Die Entwicklung von automatisch generierten Deckblättern in OPUS 4 hat begonnen. Sie 
+findet im neuen Paket __opus4-pdf__ statt und ist noch nicht abgeschlossen. In 4.7.1
+wurde die Grundlagen gelegt, um den Deckblatt-Support nach dem Abschluss der Arbeiten
+aktivieren zu können.
+
+<http://github.com/OPUS4/opus4-pdf>
+
+### Umstieg auf Laminas
+
+In 4.7.1 sind bereits einige Vorarbeiten für den Umstieg zu Laminas, dem Nachfolger
+des Zend Frameworks, eingeflossen, insbesondere im Framework. Die kommenden Releases
+werden sich zum größten Teil mit dem Umstieg befassen, da nur so eine solide Platform 
+für die Entwicklung und das Hosting in den kommenden Jahren geschaffen werden kann.
+
+### OPUS 4 Framework Package
+
+#### API
+
+Die `deletePermanent` Funktion von `Opus\Document`, um Dokumente vollständig zu
+löschen, wurde entfernt. Die `delete` Funktion löscht Dokumente jetzt vollständig,
+anstatt sie nur in den Server-Status **deleted** zu versetzen. Um Dokumente als
+gelöscht zu markieren, ohne sie komplett zu entfernen, muss nun `setServerState`
+verwendet werden.
+
+    $doc->setServerState(Document::STATE_DELETED);
+    $doc->store();
+
+Dies muss unter Umständen bei eigenen Skripten berücksichtigt werden.
+
+#### PHP Namespaces
+
+Der Code des OPUS Frameworks wurde in Vorbereitung auf die Migration zu Laminas
+auf PHP Namespaces umgestellt und die Verwendung der Klassen in der Application
+entsprechend angepasst.
+
+---
+
+## Patch Release 4.7.0.8 2022-01-25
+
+Die Resolver-URL für PUBMED Einträge wurde aktualisiert und konfigurierbar gemacht, 
+damit sie in Zukunft leichter ausgetauscht werden kann.
+
+```
+pubmed.baseUrl = https://pubmed.ncbi.nlm.nih.gov/
+```
+
+Die Installation von Components, JQuery und JQuery-UI, mit Composer 2 wurde gefixt, 
+indem auf ein aktuelles Installer-Plugin umgestiegen wurde. Bei existierenden 
+Instanzen kann es während der Ausführungen von `composer update` zu Fehlermeldungen 
+über fehlende Klassen kommen. Ein nochmaliges ausführen von `composer update` behebt 
+in der Regel das Problem. Im Zweifelsfall können die Verzeichnisse `vendor` und auch 
+`public/assets` gelöscht werden, um dann sämtliche Pakete und auch die Komponenten 
+mit `composer install` frisch zu installieren. 
+
+---
+
+## Patch Release 4.7.0.7 2021-10-19
+
+Die Deklaration des Namespaces "xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+erfolgt nun auch in jedem Metadata-Element der mit einem Resumption-Token abgerufenen 
+Folgeseiten eines OAI-Exports.
+
+Außerdem wurde ein kleiner Fehler im User Interface behoben.
+
+---
+
+## Patch Release 4.7.0.6 2021-09-28
+
+Dieser Patch Release behebt Problem bei XMetaDissPlus und beim 
+Freischalten von Dokumenten im Review-Modul.  
+
+### Personen ohne Vornamen in XMetaDissPlus
+
+AutorInnen ohne Vornamen werden in XMetaDissPlus nun mit dem Element
+`pc:personEnteredUnderGivenName` abgebildet. Der Nachname kann damit 
+auch für Künstlernamen verwendet werden, die keinen Vornamen haben.
+
+```
+<pc:name type="otherName">
+    <pc:personEnteredUnderGivenName>
+        NACHNAME
+    </pc:personEnteredUnderGivenName>
+</pc:name>
+```
+
+### `PublishedDate` beim Freischalten von Dokumenten
+
+Beim Freischalten von Dokumenten im Review-Modul, also nicht beim 
+Freischalten eines einzelnen Dokuments in der Administration, wurde
+bisher immer das Feld `PublishedDate` auf das aktuelle Datum gesetzt. 
+Mit der neuen Version werden existierende Einträge in dem Feld nicht 
+mehr überschrieben.
+
+---
+
+## Patch Release 4.7.0.5 2021-08-17
+
+Dieser Patch Release behebt zwei kleinere Bugs. Das Editieren der Inhalte der
+Impressum und Kontakt-Seite ist nun auch von der FAQ-Seite aus ohne Probleme beim
 Speichern möglich.
-Von den Suchlinks für Autoren in der Anzeige von Suchergebnissen wurden 
+Von den Suchlinks für Autoren in der Anzeige von Suchergebnissen wurden
 Anführungszeichen entfernt. Damit funktioniert die Autorensuche nun zuverlässiger,
 insbesondere auch mit Namen, die  Bindestriche enthalten.
 
-Die Deklaration des Namespaces "xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-erfolgt nun beim OAI-Export in jedem Metadata Wurzel Element (GH-412). 
+Die Deklaration des Namespaces "xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+erfolgt nun beim OAI-Export in jedem Metadata Wurzel Element (GH-412).
 
-## Release 4.7.0.4 2020-12-02
+---
+
+## Patch Release 4.7.0.4 2020-12-02
 
 Diese Version behebt einen Bug im Framework bei der Abfrage, wenn in einem Dokument
 mehrere Identifier vom gleichen Typ vorhanden sind. Dieses Problem hat in einem Fall
@@ -25,6 +504,8 @@ Frameworks mit `composer update` sollten für das Update auf diese Version ausre
 Die Versionen 4.7.0.1-4.7.0.3 wurden als kleine Patch-Releases veröffentlicht, ohne
 die Versionsnummer von OPUS 4 zu verändern. In Zukunft werden wir auch für diese 
 Patch-Releases die Versionsnummer aktualisieren.
+
+---
 
 ## Release 4.7 2020-07-31
 

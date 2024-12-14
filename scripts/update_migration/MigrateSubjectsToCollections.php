@@ -1,7 +1,7 @@
-#!/usr/bin/env php5
 <?php
 
-/** This file is part of OPUS. The software OPUS has been originally developed
+/**
+ * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
  * of Science, Research and the Arts of the State of Baden-Wuerttemberg.
@@ -25,21 +25,29 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @author      Thoralf Klein <tklein@zib.de>
- * @author      Sascha Szott <szott@zib.de>
- * @copyright   Copyright (c) 2008-2012, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
- * @version     $Id$
- **/
+ */
+
+// TODO move code into classes
 
 // Bootstrapping.
 require_once dirname(__FILE__) . '/../common/bootstrap.php';
 
-// Parse arguments.
-global $argc, $argv;
+use Opus\Common\Collection;
+use Opus\Common\CollectionRole;
+use Opus\Common\Document;
+use Opus\Common\DocumentInterface;
+use Opus\Common\EnrichmentKey;
+use Opus\Common\EnrichmentKeyInterface;
+use Opus\Common\Model\NotFoundException;
+use Opus\Common\Repository;
 
-if (count($argv) != 2) {
+// Parse arguments.
+$argc = $GLOBALS['argc'];
+$argv = $GLOBALS['argv'];
+
+if (count($argv) !== 2) {
     echo "usage: " . __FILE__ . " logfile.log\n";
     exit(-1);
 }
@@ -49,20 +57,22 @@ echo "\nmigrating classification subjects -- can take a while";
 // Initialize logger.
 $logfileName = $argv[1];
 
-$logfile = @fopen($logfileName, 'a', false);
-$writer = new Zend_Log_Writer_Stream($logfile);
+/**
+ * TODO Not using LogService, because file is written to working directory (OPUSVIER-4289)
+ */
+$logfile   = @fopen($logfileName, 'a', false);
+$writer    = new Zend_Log_Writer_Stream($logfile);
 $formatter = new Zend_Log_Formatter_Simple('%timestamp% %priorityName%: %message%' . PHP_EOL);
 $writer->setFormatter($formatter);
 $logger = new Zend_Log($writer);
 
-
 // load collections (and check existence)
-$mscRole = Opus_CollectionRole::fetchByName('msc');
+$mscRole = CollectionRole::fetchByName('msc');
 if (! is_object($mscRole)) {
     $logger->warn("MSC collection does not exist.  Cannot migrate SubjectMSC.");
 }
 
-$ddcRole = Opus_CollectionRole::fetchByName('ddc');
+$ddcRole = CollectionRole::fetchByName('ddc');
 if (! is_object($ddcRole)) {
     $logger->warn("DDC collection does not exist.  Cannot migrate SubjectDDC.");
 }
@@ -72,13 +82,13 @@ createEnrichmentKey('MigrateSubjectMSC');
 createEnrichmentKey('MigrateSubjectDDC');
 
 // Iterate over all documents.
-$docFinder = new Opus_DocumentFinder();
+$docFinder          = Repository::getInstance()->getDocumentFinder();
 $changedDocumentIds = [];
-foreach ($docFinder->ids() as $docId) {
+foreach ($docFinder->getIds() as $docId) {
     $doc = null;
     try {
-        $doc = new Opus_Document($docId);
-    } catch (Opus_Model_NotFoundException $e) {
+        $doc = Document::get($docId);
+    } catch (NotFoundException $e) {
         continue;
     }
 
@@ -86,22 +96,22 @@ foreach ($docFinder->ids() as $docId) {
     $removeDdcSubjects = [];
     try {
         if (is_object($mscRole)) {
-            $removeMscSubjects = migrateSubjectToCollection($doc, 'msc', $mscRole->getId(), 'MigrateSubjectMSC');
+            $removeMscSubjects = migrateSubjectToCollection($doc, 'msc', $mscRole->getId(), 'MigrateSubjectMSC', $logger);
         }
 
         if (is_object($ddcRole)) {
-            $removeDdcSubjects = migrateSubjectToCollection($doc, 'ddc', $ddcRole->getId(), 'MigrateSubjectDDC');
+            $removeDdcSubjects = migrateSubjectToCollection($doc, 'ddc', $ddcRole->getId(), 'MigrateSubjectDDC', $logger);
         }
     } catch (Exception $e) {
         $logger->err("fatal error while parsing document $docId: " . $e);
         continue;
     }
 
-    if (count($removeMscSubjects) > 0 or count($removeDdcSubjects) > 0) {
+    if (count($removeMscSubjects) > 0 || count($removeDdcSubjects) > 0) {
         $changedDocumentIds[] = $docId;
 
         try {
-            $doc->unregisterPlugin('Opus_Document_Plugin_Index');
+            $doc->unregisterPlugin('Opus\Document\Plugin\Index');
             $doc->store();
             $logger->info("changed document $docId");
         } catch (Exception $e) {
@@ -111,6 +121,11 @@ foreach ($docFinder->ids() as $docId) {
 }
 $logger->info("changed " . count($changedDocumentIds) . " documents: " . implode(",", $changedDocumentIds));
 
+/**
+ * @param DocumentInterface $doc
+ * @param int               $collectionId
+ * @return bool
+ */
 function checkDocumentHasCollectionId($doc, $collectionId)
 {
     foreach ($doc->getCollection() as $c) {
@@ -121,17 +136,24 @@ function checkDocumentHasCollectionId($doc, $collectionId)
     return false;
 }
 
-function migrateSubjectToCollection($doc, $subjectType, $roleId, $eKeyName)
+/**
+ * @param DocumentInterface $doc
+ * @param string            $subjectType
+ * @param int               $roleId
+ * @param string            $eKeyName
+ * @param Zend_Log          $logger
+ * @return array
+ */
+function migrateSubjectToCollection($doc, $subjectType, $roleId, $eKeyName, $logger)
 {
-    global $logger;
     $logPrefix = sprintf("[docId % 5d] ", $doc->getId());
 
-    $keepSubjects = [];
+    $keepSubjects   = [];
     $removeSubjects = [];
     foreach ($doc->getSubject() as $subject) {
         $keepSubjects[$subject->getId()] = $subject;
 
-        $type = $subject->getType();
+        $type  = $subject->getType();
         $value = $subject->getValue();
 
         if ($type !== $subjectType) {
@@ -141,11 +163,11 @@ function migrateSubjectToCollection($doc, $subjectType, $roleId, $eKeyName)
 
         // From now on, every subject will be migrated
         $keepSubjects[$subject->getId()] = false;
-        $removeSubjects[] = $subject;
+        $removeSubjects[]                = $subject;
 
         // check if (unique) collection for subject value exists
-        $collections = Opus_Collection::fetchCollectionsByRoleNumber($roleId, $value);
-        if (! is_array($collections) or count($collections) < 1) {
+        $collections = Collection::fetchCollectionsByRoleNumber($roleId, $value);
+        if (! is_array($collections) || count($collections) < 1) {
             $logger->warn("$logPrefix  No collection found for value '$value' -- migrating to enrichment $eKeyName.");
             // migrate subject to enrichments
             $doc->addEnrichment()
@@ -212,15 +234,20 @@ function migrateSubjectToCollection($doc, $subjectType, $roleId, $eKeyName)
     return $removeSubjects;
 }
 
+/**
+ * @param string $name
+ * @return EnrichmentKeyInterface
+ * @throws NotFoundException
+ */
 function createEnrichmentKey($name)
 {
     try {
-        $eKey = new Opus_EnrichmentKey();
+        $eKey = EnrichmentKey::new();
         $eKey->setName($name)->store();
     } catch (Exception $e) {
     }
 
-    return new Opus_EnrichmentKey($name);
+    return EnrichmentKey::get($name);
 }
 
 echo "\nConsult the log file $argv[1] for full details\n";

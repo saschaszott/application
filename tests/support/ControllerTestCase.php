@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,13 +25,28 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @author      Jens Schwidder <schwidder@zib.de>
- * @author      Thoralf Klein <thoralf.klein@zib.de>
- * @author      Michael Lang <lang@zib.de>
- * @copyright   Copyright (c) 2008-2020, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Config;
+use Opus\Common\Document;
+use Opus\Common\DocumentFinderInterface;
+use Opus\Common\DocumentInterface;
+use Opus\Common\File;
+use Opus\Common\FileInterface;
+use Opus\Common\LoggingTrait;
+use Opus\Common\Model\ModelException;
+use Opus\Common\Model\ModelInterface;
+use Opus\Common\Model\NotFoundException;
+use Opus\Common\Repository;
+use Opus\Common\Security\Realm;
+use Opus\Common\Security\SecurityException;
+use Opus\Common\UserRole;
+use Opus\Db\TableGateway;
+use Opus\Doi\DoiManager;
+use Opus\Search\Service;
+use Opus\Security\AuthAdapter;
 
 /**
  * Base class for controller tests.
@@ -39,36 +55,47 @@
  */
 class ControllerTestCase extends TestCase
 {
-    const MESSAGE_LEVEL_NOTICE = 'notice';
+    use LoggingTrait;
 
-    const MESSAGE_LEVEL_FAILURE = 'failure';
+    public const MESSAGE_LEVEL_NOTICE = 'notice';
 
-    const CONFIG_VALUE_FALSE = ''; // Zend_Config übersetzt false in den Wert ''
+    public const MESSAGE_LEVEL_FAILURE = 'failure';
 
-    const CONFIG_VALUE_TRUE = '1'; // Zend_Config übersetzt true in den Wert '1'
+    public const CONFIG_VALUE_FALSE = ''; // Zend_Config übersetzt false in den Wert ''
 
-    use \Opus\LoggingTrait;
+    public const CONFIG_VALUE_TRUE = '1'; // Zend_Config übersetzt true in den Wert '1'
 
+    /** @var bool */
     private $securityEnabled;
 
+    /** @var array */
     private $testDocuments;
 
+    /** @var array */
     private $testFiles;
 
+    /** @var array */
     private $testFolders;
 
+    /** @var array */
     private $tempFiles = [];
 
-    private $logger = null;
+    /** @var Application_Translate|null */
+    private $translatorBackup;
 
-    private $translatorBackup = null;
+    /** @var string */
+    private $workspacePath;
 
-    private $workspacePath = null;
-
+    /** @var array|null */
     private $cleanupModels;
+
+    /** @var Zend_Config */
+    private $baseConfig;
 
     /**
      * Method to initialize Zend_Application for each test.
+     *
+     * @param string $applicationEnv
      */
     public function setUpWithEnv($applicationEnv)
     {
@@ -81,15 +108,17 @@ class ControllerTestCase extends TestCase
         parent::setUp();
     }
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->setUpWithEnv(APPLICATION_ENV);
+
+        $this->getRequest()->setRequestUri(''); // prevents PHP warnings because request URI is null
     }
 
     /**
      * Clean up database instances.
      */
-    public function tearDown()
+    public function tearDown(): void
     {
         $this->logoutUser();
         $this->resetSearch();
@@ -102,24 +131,69 @@ class ControllerTestCase extends TestCase
 
         $this->additionalChecks();
 
-        $this->logger = null;
+        $this->setLogger(null);
 
+        DoiManager::setInstance(null);
         Application_Configuration::clearInstance(); // reset Application_Configuration
+        Application_Translate::setInstance(null);
+        Application_Security_AclProvider::clear();
 
         parent::tearDown();
     }
 
+    /**
+     * Overwrites selected properties of current configuration.
+     *
+     * @note A test doesn't need to backup and recover replaced configuration as
+     *       this is done in setup and tear-down phases.
+     * @param array         $overlay properties to overwrite existing values in configuration
+     * @param null|callable $callback callback to invoke with adjusted configuration before enabling e.g. to delete some options
+     * @return Zend_Config reference on updated configuration
+     */
+    public function adjustConfiguration($overlay, $callback = null)
+    {
+        $previous = Config::get();
+
+        if ($this->baseConfig === null) {
+            $this->baseConfig = $previous;
+        }
+
+        $updated = new Zend_Config($previous->toArray(), true);
+
+        $updated->merge(new Zend_Config($overlay));
+
+        if (is_callable($callback)) {
+            $updated = call_user_func($callback, $updated);
+        }
+
+        Config::set($updated);
+
+        return $updated;
+    }
+
+    protected function resetConfiguration()
+    {
+        if ($this->baseConfig !== null) {
+            Config::set($this->baseConfig);
+        }
+    }
+
+    /**
+     * @return Zend_Application
+     */
     public function getApplication()
     {
         return new Zend_Application(
             $this->applicationEnv,
-            ["config" => [
-                APPLICATION_PATH . '/application/configs/application.ini',
-                APPLICATION_PATH . '/application/configs/config.ini',
-                APPLICATION_PATH . '/application/configs/console.ini',
-                APPLICATION_PATH . '/tests/tests.ini',
-                APPLICATION_PATH . '/tests/config.ini'
-            ]]
+            [
+                "config" => [
+                    APPLICATION_PATH . '/application/configs/application.ini',
+                    APPLICATION_PATH . '/application/configs/config.ini',
+                    APPLICATION_PATH . '/application/configs/console.ini',
+                    APPLICATION_PATH . '/tests/tests.ini',
+                    APPLICATION_PATH . '/tests/config.ini',
+                ],
+            ]
         );
     }
 
@@ -132,7 +206,7 @@ class ControllerTestCase extends TestCase
         $this->closeDatabaseConnection();
 
         // Resetting singletons or other kinds of persistent objects.
-        Opus_Db_TableGateway::clearInstances();
+        TableGateway::clearInstances();
 
         // Clean-up possible artifacts in $_SERVER of previous test.
         unset($_SERVER['REMOTE_ADDR']);
@@ -142,7 +216,7 @@ class ControllerTestCase extends TestCase
 
     public function cleanupDatabase()
     {
-        if (! is_null(Zend_Db_Table::getDefaultAdapter())) {
+        if (Zend_Db_Table::getDefaultAdapter() !== null) {
             $this->deleteTestDocuments();
 
             // data integrity checks TODO should be made unnecessary
@@ -166,7 +240,7 @@ class ControllerTestCase extends TestCase
      */
     protected function checkDoc146()
     {
-        $doc = new Opus_Document(146);
+        $doc      = Document::get(146);
         $modified = $doc->getServerDateModified();
 
         $this->assertEquals(2012, $modified->getYear());
@@ -174,7 +248,7 @@ class ControllerTestCase extends TestCase
 
     protected function checkDoc1()
     {
-        $doc = new Opus_Document(1);
+        $doc      = Document::get(1);
         $modified = $doc->getServerDateModified();
 
         $this->assertEquals(2010, $modified->getYear());
@@ -193,8 +267,11 @@ class ControllerTestCase extends TestCase
      *
      * TODO mache $body optional (als zweiten Parameter) - hole aktuallen Body automatisch
      * TODO erlaube einfachen String als $badStrings Parameter
+     *
+     * @param string   $body
+     * @param string[] $badStrings
      */
-    protected function checkForCustomBadStringsInHtml($body, array $badStrings)
+    protected function checkForCustomBadStringsInHtml($body, $badStrings)
     {
         $bodyLowerCase = strtolower($body);
         foreach ($badStrings as $badString) {
@@ -210,6 +287,8 @@ class ControllerTestCase extends TestCase
      * Method to check response for "bad" strings.
      *
      * TODO mache $body optional
+     *
+     * @param string $body
      */
     protected function checkForBadStringsInHtml($body)
     {
@@ -227,14 +306,27 @@ class ControllerTestCase extends TestCase
      */
     public function loginUser($login, $password)
     {
-        $adapter = new Opus_Security_AuthAdapter();
+        $adapter = new AuthAdapter();
         $adapter->setCredentials($login, $password);
 
         $auth = Zend_Auth::getInstance();
         $auth->authenticate($adapter);
         $this->assertTrue($auth->hasIdentity());
 
-        $config = Zend_Registry::get('Zend_Config');
+        $user = Zend_Auth::getInstance()->getIdentity();
+
+        if ($user !== null) {
+            try {
+                $realm = Realm::getInstance();
+                $realm->setUser($user);
+            } catch (SecurityException $ose) {
+                // unknown user -> invalidate session (logout)
+                Zend_Auth::getInstance()->clearIdentity();
+                $user = null;
+            }
+        }
+
+        $config = Config::get();
         if (isset($config->security) && filter_var($config->security, FILTER_VALIDATE_BOOLEAN)) {
             Application_Security_AclProvider::init();
 
@@ -250,10 +342,10 @@ class ControllerTestCase extends TestCase
     public function logoutUser()
     {
         $instance = Zend_Auth::getInstance();
-        if (! is_null($instance)) {
+        if ($instance !== null) {
             $instance->clearIdentity();
         }
-        $realm = Opus_Security_Realm::getInstance();
+        $realm = Realm::getInstance();
         $realm->setUser(null);
         $realm->setIp(null);
 
@@ -272,43 +364,42 @@ class ControllerTestCase extends TestCase
      */
     protected function requireSolrConfig()
     {
-        $config = Opus\Search\Config::getServiceConfiguration(Opus\Search\Service::SERVICE_TYPE_INDEX);
+        $config = Opus\Search\Config::getServiceConfiguration(Service::SERVICE_TYPE_INDEX);
 
-        if (is_null($config)) {
+        if ($config === null) {
             $this->markTestSkipped('No solr-config given.  Skipping test.');
         }
     }
 
     /**
      * Modifies Solr configuration to un unknown core to simulate connection failure.
+     *
      * @throws Zend_Exception
      */
     protected function disableSolr()
     {
-        $config = Zend_Registry::get('Zend_Config');
         // TODO old config path still needed?
         // $config->searchengine->index->app = 'solr/corethatdoesnotexist';
-        $config->merge(new Zend_Config([
+        $this->adjustConfiguration([
             'searchengine' => [
                 'solr' => [
                     'default' => [
                         'service' => [
                             'endpoint' => [
                                 'localhost' => [
-                                    'path' => '/solr/corethatdoesnotexist'
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ]));
+                                    'path' => '/solr/corethatdoesnotexist',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
     }
 
     /**
-     *
      * @param Zend_Controller_Response_Abstract $response
-     * @param string $location
+     * @param string                            $location
      */
     protected function assertResponseLocationHeader($response, $location)
     {
@@ -324,17 +415,19 @@ class ControllerTestCase extends TestCase
 
     public function enableSecurity()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                = $this->getConfig();
         $this->securityEnabled = $config->security;
-        $config->security = self::CONFIG_VALUE_TRUE;
-        Zend_Registry::set('Zend_Config', $config);
+        $config->security      = self::CONFIG_VALUE_TRUE;
+        Application_Security_AclProvider::init();
     }
 
+    /**
+     * TODO is this needed for tearDown?
+     */
     public function restoreSecuritySetting()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config           = $this->getConfig();
         $config->security = $this->securityEnabled;
-        Zend_Registry::set('Zend_Config', $config);
     }
 
     /**
@@ -342,9 +435,9 @@ class ControllerTestCase extends TestCase
      */
     public function useGerman()
     {
-        $session = new Zend_Session_Namespace();
+        $session           = new Zend_Session_Namespace();
         $session->language = 'de';
-        Zend_Registry::get('Zend_Translate')->setLocale('de');
+        Application_Translate::getInstance()->setLocale('de');
         Application_Form_Element_Language::initLanguageList();
     }
 
@@ -353,25 +446,26 @@ class ControllerTestCase extends TestCase
      */
     public function useEnglish()
     {
-        $session = new Zend_Session_Namespace();
+        $session           = new Zend_Session_Namespace();
         $session->language = 'en';
-        Zend_Registry::get('Zend_Translate')->setLocale('en');
+        Application_Translate::getInstance()->setLocale('en');
         Application_Form_Element_Language::initLanguageList();
     }
 
     /**
      * Prüft, ob das XHTML valide ist.
-     * @param string $body
+     *
+     * @param string|null $body
      *
      * TODO die DTD von W3C zu holen ist sehr langsam; sollte aus lokaler Datei geladen werden
      */
     public function validateXHTML($body = null)
     {
-        if (is_null($body)) {
+        if ($body === null) {
             $body = $this->getResponse()->getBody();
         }
 
-        if (is_null($body) || strlen(trim($body)) === 0) {
+        if ($body === null || strlen(trim($body)) === 0) {
             $this->fail('No XHTML Body to validate.');
             return;
         }
@@ -382,16 +476,17 @@ class ControllerTestCase extends TestCase
         $dom = new DOMDocument();
 
         // Setze HTTP Header damit W3C Request nicht verweigert
-        $opts = ['http' => [
-            'user_agent' => 'PHP libxml agent',
-        ]];
-
+        $opts = [
+            'http' => [
+                'user_agent' => 'PHP libxml agent',
+            ],
+        ];
 
         $context = stream_context_create($opts);
         libxml_set_streams_context($context);
 
         $mapping = [
-             'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd' => 'xhtml1-strict.dtd'
+            'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd' => 'xhtml1-strict.dtd',
         ];
 
         /* TODO erst ab PHP >= 5.4.0 unterstützt; Alternative Lösung?
@@ -424,7 +519,7 @@ class ControllerTestCase extends TestCase
         $ignored = [
             'No declaration for attribute class of element html',
             'No declaration for attribute placeholder of element input',
-            'No declaration for attribute target of element a'
+            'No declaration for attribute target of element a',
         ];
 
         $filteredErrors = [];
@@ -444,9 +539,9 @@ class ControllerTestCase extends TestCase
             $output = '';
         }
 
-        $this->assertEquals(
+        $this->assertCount(
             0,
-            count($errors),
+            $errors,
             'XHTML Schemaverletzungen gefunden (' . count($errors) . ')' . PHP_EOL . $output
         );
 
@@ -456,15 +551,16 @@ class ControllerTestCase extends TestCase
 
     /**
      * Prüft, ob ein Kommando auf den System existiert (Mac OS-X, Linux)
+     *
      * @param string $command Name des Kommandos
-     * @return boolean TRUE - wenn Kommando existiert
+     * @return bool TRUE - wenn Kommando existiert
      */
     public function isCommandAvailable($command)
     {
         $this->getLogger()->debug("Checking command $command");
         $this->getLogger()->debug('User: ' . get_current_user());
         $result = shell_exec("which $command");
-        return (empty($result) ? false : true);
+        return empty($result) ? false : true;
     }
 
     /**
@@ -485,13 +581,14 @@ class ControllerTestCase extends TestCase
 
     /**
      * Liefert true wenn Tests mit fehlenden Kommandos mit Fail markiert werden sollten.
-     * @return boolean
+     *
+     * @return bool
      */
     public function isFailTestOnMissingCommand()
     {
-        $config = Zend_Registry::get('Zend_Config');
-        return (isset($config->tests->failTestOnMissingCommand) &&
-                filter_var($config->tests->failTestOnMissingCommand, FILTER_VALIDATE_BOOLEAN));
+        $config = Config::get();
+        return isset($config->tests->failTestOnMissingCommand) &&
+                filter_var($config->tests->failTestOnMissingCommand, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -499,15 +596,15 @@ class ControllerTestCase extends TestCase
      *
      * Fuer gruene Nachrichten Level muss self::MESSAGE_LEVEL_NOTICE verwendet werden.
      *
-     * @param $message Übersetzungsschlüssel bzw. Nachricht
+     * @param string $message Übersetzungsschlüssel bzw. Nachricht
      * @param string $level 'notice' oder 'failure'
      */
     public function verifyFlashMessage($message, $level = self::MESSAGE_LEVEL_FAILURE)
     {
         $flashMessenger = Zend_Controller_Action_HelperBroker::getStaticHelper('FlashMessenger');
-        $flashMessages = $flashMessenger->getCurrentMessages();
+        $flashMessages  = $flashMessenger->getCurrentMessages();
 
-        $this->assertEquals(1, count($flashMessages), 'Expected one flash message in queue.');
+        $this->assertCount(1, $flashMessages, 'Expected one flash message in queue.');
         $flashMessage = $flashMessages[0];
 
         $this->assertEquals($message, $flashMessage['message']);
@@ -519,15 +616,15 @@ class ControllerTestCase extends TestCase
      *
      * Fuer gruene Nachrichten Level muss self::MESSAGE_LEVEL_NOTICE verwendet werden.
      *
-     * @param $message Übersetzungsschlüssel bzw. Nachricht
+     * @param string $message Übersetzungsschlüssel bzw. Nachricht
      * @param string $level 'notice' oder 'failure'
      */
     public function verifyNotFlashMessageContains($message, $level = self::MESSAGE_LEVEL_FAILURE)
     {
         $flashMessenger = Zend_Controller_Action_HelperBroker::getStaticHelper('FlashMessenger');
-        $flashMessages = $flashMessenger->getCurrentMessages();
+        $flashMessages  = $flashMessenger->getCurrentMessages();
 
-        $this->assertEquals(1, count($flashMessages), 'Expected one flash message in queue.');
+        $this->assertCount(1, $flashMessages, 'Expected one flash message in queue.');
         $flashMessage = $flashMessages[0];
 
         $this->assertNotContains($message, $flashMessage['message']);
@@ -536,14 +633,15 @@ class ControllerTestCase extends TestCase
 
     /**
      * Liefert den Inhalt des Response Location Header.
+     *
      * @return string|null
      */
     public function getLocation()
     {
         $headers = $this->getResponse()->getHeaders();
         foreach ($headers as $header) {
-            if (isset($header['name']) && $header['name'] == 'Location') {
-                return isset($header['value']) ? $header['value'] : null;
+            if (isset($header['name']) && $header['name'] === 'Location') {
+                return $header['value'] ?? null;
             }
         }
         return null;
@@ -552,27 +650,26 @@ class ControllerTestCase extends TestCase
     /**
      * Prueft, ob eine Seite in navigationModules.xml definiert wurde.
      *
-     *
-     * @param null $location
+     * @param string|null $location
      */
     public function verifyBreadcrumbDefined($location = null)
     {
-        if (is_null($location)) {
+        if ($location === null) {
             $location = $this->getLocation(); // liefert null wenn es kein redirect war
-            if (is_null($location)) {
+            if ($location === null) {
                 // ansonsten Request-URI verwenden
                 $location = $this->getRequest()->getRequestUri();
             }
         }
 
-        $view = Zend_Registry::get('Opus_View');
+        $view = $this->getView();
 
         $path = explode('/', $location);
 
         array_shift($path);
-        $module = array_shift($path);
+        $module     = array_shift($path);
         $controller = array_shift($path);
-        $action = array_shift($path);
+        $action     = array_shift($path);
 
         $navigation = $view->navigation()->getContainer();
 
@@ -581,11 +678,11 @@ class ControllerTestCase extends TestCase
         $breadcrumbDefined = false;
 
         foreach ($pages as $page) {
-            if ($page->getController() == $controller && $page->getAction() == $action) {
+            if ($page->getController() === $controller && $page->getAction() === $action) {
                 if (! $breadcrumbDefined) {
                     $breadcrumbDefined = true;
 
-                    $translate = Zend_Registry::get('Zend_Translate');
+                    $translate = Application_Translate::getInstance();
 
                     $label = $page->getLabel();
 
@@ -596,7 +693,7 @@ class ControllerTestCase extends TestCase
                 } else {
                     $this->fail("Seite '$location' mehr als einmal in navigationModules.xml definiert.");
                 }
-            };
+            }
         }
 
         $this->assertTrue($breadcrumbDefined, "Seite '$location' nicht in navigationModules.xml definiert.");
@@ -613,35 +710,35 @@ class ControllerTestCase extends TestCase
     /**
      * Removes a test document from the database.
      *
-     * @param $value Opus_Document|int
-     * @throws Opus_Model_Exception
+     * @param DocumentInterface|int $value
+     * @throws ModelException
      */
     public function removeDocument($value)
     {
-        if (is_null($value)) {
+        if ($value === null) {
             return;
         }
 
         $doc = $value;
-        if (! ($value instanceof Opus_Document)) {
+        if (! $value instanceof DocumentInterface) {
             try {
-                $doc = new Opus_Document($value);
-            } catch (Opus_Model_NotFoundException $e) {
+                $doc = Document::get($value);
+            } catch (NotFoundException $e) {
                 // could not find document -> no cleanup operation required: exit silently
                 return;
             }
         }
 
         $docId = $doc->getId();
-        if (is_null($docId)) {
+        if ($docId === null) {
             // Dokument wurde (noch) nicht in DB persistiert
             return;
         }
 
         try {
-            new Opus_Document($docId);
-            $doc->deletePermanent();
-        } catch (Opus_Model_NotFoundException $omnfe) {
+            Document::get($docId);
+            $doc->delete();
+        } catch (NotFoundException $omnfe) {
             // Model nicht gefunden -> alles gut (hoffentlich)
             $this->getLogger()->debug("Test document {$docId} was deleted successfully by test.");
             return;
@@ -652,9 +749,9 @@ class ControllerTestCase extends TestCase
 
         // make sure test documents have been deleted
         try {
-            new Opus_Document($docId);
+            Document::get($docId);
             $this->getLogger()->debug("Test document {$docId} was not deleted.");
-        } catch (Opus_Model_NotFoundException $omnfe) {
+        } catch (NotFoundException $omnfe) {
             // ignore - document was deleted successfully
             $this->getLogger()->debug("Test document {$docId} was deleted successfully.");
         }
@@ -662,7 +759,7 @@ class ControllerTestCase extends TestCase
 
     protected function deleteTestDocuments()
     {
-        if (is_null($this->testDocuments)) {
+        if ($this->testDocuments === null) {
             return;
         }
 
@@ -673,38 +770,58 @@ class ControllerTestCase extends TestCase
         $this->testDocuments = null;
     }
 
+    /**
+     * @param int $docId
+     * @return DocumentInterface
+     */
     protected function getDocument($docId)
     {
-        return new Opus_Document($docId);
+        return Document::get($docId);
+    }
+
+    /**
+     * Returns finder for documents.
+     *
+     * @return DocumentFinderInterface
+     */
+    protected function getDocumentFinder()
+    {
+        return Repository::getInstance()->getDocumentFinder();
     }
 
     /**
      * Erzeugt ein Testdokument, das nach der Testausführung automatisch aufgeräumt wird.
      *
-     * @return Opus_Document
-     * @throws Opus_Model_Exception
+     * @return DocumentInterface
+     * @throws ModelException
      */
     protected function createTestDocument()
     {
-        $doc = new Opus_Document();
+        $doc = Document::new();
         $this->addTestDocument($doc);
         return $doc;
     }
 
     /**
      * Adds a document to the cleanup queue.
+     *
+     * @param DocumentInterface $document
      */
     protected function addTestDocument($document)
     {
-        if (is_null($this->testDocuments)) {
+        if ($this->testDocuments === null) {
             $this->testDocuments = [];
         }
         array_push($this->testDocuments, $document);
     }
 
+    /**
+     * @param string $prefix
+     * @return string
+     */
     protected function getTempFile($prefix = 'Opus4TestTemp')
     {
-        $filePath = tempnam(sys_get_temp_dir(), $prefix);
+        $filePath          = tempnam(sys_get_temp_dir(), $prefix);
         $this->tempFiles[] = $filePath;
         return $filePath;
     }
@@ -721,43 +838,59 @@ class ControllerTestCase extends TestCase
     }
 
     /**
-     * @param string $filename
-     * @param string $filepath
-     * @return Opus_File
-     * @throws Opus_Model_Exception
+     * @param string      $filename
+     * @param null|string $filepath
+     * @return FileInterface
+     * @throws ModelException
      * @throws Zend_Exception
+     *
+     * TODO allow same filename in different locations
      */
     protected function createOpusTestFile($filename, $filepath = null)
     {
-        if (is_null($this->testFiles)) {
+        if ($this->testFiles === null) {
             $this->testFiles = [];
         }
 
         $workspacePath = $this->getWorkspacePath();
 
-        if (is_null($filepath)) {
-            $path = $this->createTestFolder();
+        if ($filepath === null) {
+            $path     = $this->createTestFolder();
             $filepath = $path . DIRECTORY_SEPARATOR . $filename;
             touch($filepath);
         }
 
         $this->assertTrue(is_readable($filepath));
-        $file = new Opus_File();
+        $file = File::new();
         $file->setPathName(basename($filepath));
         $file->setTempFile($filepath);
         if (array_key_exists($filename, $this->testFiles)) {
-            throw Exception('filenames should be unique');
+            throw new Exception('filenames should be unique');
         }
         $this->testFiles[$filename] = $filepath;
         return $file;
     }
 
+    /**
+     * @param string $filePath
+     */
+    public function addFileToCleanup($filePath)
+    {
+        if ($this->testFiles === null) {
+            $this->testFiles = [];
+        }
+
+        $fileName = basename($filePath);
+
+        $this->testFiles[$fileName] = $filePath;
+    }
+
     protected function deleteTestFiles()
     {
-        if (! is_null($this->testFiles)) {
+        if ($this->testFiles !== null) {
             foreach ($this->testFiles as $key => $filepath) {
                 try {
-                    if (is_writeable($filepath)) {
+                    if (is_writable($filepath)) {
                         unlink($filepath);
                     }
                 } catch (Exception $e) {
@@ -766,9 +899,15 @@ class ControllerTestCase extends TestCase
         }
     }
 
+    /**
+     * @param string      $filename
+     * @param string|null $content
+     * @param string|null $path
+     * @return string
+     */
     protected function createTestFile($filename, $content = null, $path = null)
     {
-        if (is_null($path)) {
+        if ($path === null) {
             $filePath = $this->createTestFolder();
         } else {
             $filePath = $path;
@@ -776,13 +915,13 @@ class ControllerTestCase extends TestCase
 
         $filePath .= DIRECTORY_SEPARATOR . $filename;
 
-        if (! is_null($content)) {
+        if ($content !== null) {
             file_put_contents($filePath, $content);
         } else {
             touch($filePath);
         }
 
-        if (is_null($this->testFiles)) {
+        if ($this->testFiles === null) {
             $this->testFiles = [];
         }
         $this->testFiles[$filename] = $filePath;
@@ -790,9 +929,12 @@ class ControllerTestCase extends TestCase
         return $filePath;
     }
 
+    /**
+     * @return string
+     */
     protected function getWorkspacePath()
     {
-        if (is_null($this->workspacePath)) {
+        if ($this->workspacePath === null) {
             $config = $this->getConfig();
             if (! isset($config->workspacePath)) {
                 throw new Exception('config key \'workspacePath\' not defined in config file');
@@ -803,20 +945,21 @@ class ControllerTestCase extends TestCase
         return $this->workspacePath;
     }
 
+    /**
+     * @param string $path
+     */
     protected function setWorkspacePath($path)
     {
         $this->workspacePath = $path;
     }
 
-    protected function getConfig()
-    {
-        return Zend_Registry::get('Zend_Config');
-    }
-
+    /**
+     * @return string
+     */
     protected function createTestFolder()
     {
         $workspacePath = $this->getWorkspacePath();
-        $path = $workspacePath . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . uniqid('test');
+        $path          = $workspacePath . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . uniqid('test');
         if (! is_array($this->testFolders)) {
             $this->testFolders = [];
         }
@@ -839,8 +982,8 @@ class ControllerTestCase extends TestCase
     }
 
     /**
-     * @param $src
-     * @param $dest
+     * @param string $src
+     * @param string $dest
      * @throws Exception
      *
      * TODO recursive copying of subdirectories?
@@ -865,6 +1008,9 @@ class ControllerTestCase extends TestCase
      * Deletes entire test folders.
      *
      * Normally does not delete files outside of configured workspace folder.
+     *
+     * @param string $path
+     * @param bool   $deleteOutsideWorkspace
      */
     protected function deleteFolder($path, $deleteOutsideWorkspace = false)
     {
@@ -890,29 +1036,27 @@ class ControllerTestCase extends TestCase
 
     public function assertSecurityConfigured()
     {
-        $this->assertEquals('1', Zend_Registry::get('Zend_Config')->security);
-        $this->assertTrue(
-            Zend_Registry::isRegistered('Opus_Acl'),
-            'Expected registry key Opus_Acl to be set'
-        );
-        $acl = Zend_Registry::get('Opus_Acl');
+        $this->assertEquals('1', Config::get()->security);
+        Application_Security_AclProvider::init();
+        $acl = Application_Security_AclProvider::getAcl();
         $this->assertTrue($acl instanceof Zend_Acl, 'Expected instance of Zend_Acl');
     }
 
     public function resetSearch()
     {
-        \Opus\Search\Config::dropCached();
-        \Opus\Search\Service::dropCached();
+        Opus\Search\Config::dropCached();
+        Service::dropCached();
     }
 
     /**
      * Sets the hostname for a test.
-     * @param $host string Hostname for tests
+     *
+     * @param string $host Hostname for tests
      * @throws Zend_Exception
      */
     public function setHostname($host)
     {
-        $view = Zend_Registry::get('Opus_View');
+        $view = $this->getView();
         $view->getHelper('ServerUrl')->setHost($host);
     }
 
@@ -922,7 +1066,7 @@ class ControllerTestCase extends TestCase
      * A lot of tests fail if the base URL is set because they verify URLs from the server root, like '/auth' instead
      * of 'opus4/auth' (base URL = 'opus4').
      *
-     * @param $baseUrl string Base URL for tests
+     * @param string $baseUrl Base URL for tests
      * @throws Zend_Controller_Exception
      */
     public function setBaseUrl($baseUrl)
@@ -940,15 +1084,17 @@ class ControllerTestCase extends TestCase
      */
     public function disableTranslation()
     {
-        if (is_null($this->translatorBackup)) {
-            $this->translatorBackup = Zend_Registry::get('Zend_Translate');
+        if ($this->translatorBackup === null) {
+            $this->translatorBackup = Application_Translate::getInstance();
         }
 
-        Zend_Registry::set('Zend_Translate', new Application_Translate([
+        $translate = new Application_Translate([
             'adapter' => 'array',
             'content' => [],
-            'locale' => 'auto'
-        ]));
+            'locale'  => 'auto',
+        ]);
+
+        Application_Translate::setInstance($translate);
     }
 
     /**
@@ -958,8 +1104,8 @@ class ControllerTestCase extends TestCase
      */
     public function enableTranslation()
     {
-        if (! is_null($this->translatorBackup)) {
-            Zend_Registry::set('Zend_Translate', $this->translatorBackup);
+        if ($this->translatorBackup !== null) {
+            Application_Translate::setInstance($this->translatorBackup);
         }
     }
 
@@ -967,14 +1113,14 @@ class ControllerTestCase extends TestCase
      * Allow the given user (identified by his or her name) to access the given module.
      * Returns true if access permission was added; otherwise false.
      *
-     * @param $moduleName module name
-     * @param $userName user name
+     * @param string $moduleName module name
+     * @param string $userName user name
      * @return bool
-     * @throws \Opus\Model\Exception
+     * @throws ModelException
      */
     protected function addModuleAccess($moduleName, $userName)
     {
-        $r = Opus_UserRole::fetchByName($userName);
+        $r       = UserRole::fetchByName($userName);
         $modules = $r->listAccessModules();
         if (! in_array($moduleName, $modules)) {
             $r->appendAccessModule($moduleName);
@@ -988,14 +1134,14 @@ class ControllerTestCase extends TestCase
      * Disallow the given user (identified by his or her name) to access the given module.
      * Returns true if access permission was removed; otherwise false.
      *
-     * @param $moduleName module name
-     * @param $userName user name
+     * @param string $moduleName module name
+     * @param string $userName user name
      * @return bool
-     * @throws \Opus\Model\Exception
+     * @throws ModelException
      */
     protected function removeModuleAccess($moduleName, $userName)
     {
-        $r = Opus_UserRole::fetchByName($userName);
+        $r       = UserRole::fetchByName($userName);
         $modules = $r->listAccessModules();
         if (in_array($moduleName, $modules)) {
             $r->removeAccessModule($moduleName);
@@ -1005,6 +1151,9 @@ class ControllerTestCase extends TestCase
         return false;
     }
 
+    /**
+     * @param ModelInterface $model
+     */
     protected function addModelToCleanup($model)
     {
         if (! is_array($this->cleanupModels)) {
@@ -1027,5 +1176,13 @@ class ControllerTestCase extends TestCase
                 // TODO logging?
             }
         }
+    }
+
+    /**
+     * @return Zend_View
+     */
+    protected function getView()
+    {
+        return $this->application->getBootstrap()->getResource('view');
     }
 }

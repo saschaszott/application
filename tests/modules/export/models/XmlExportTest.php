@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,30 +25,26 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Module_Export
- * @author      Michael Lang <lang@zib.de>
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Repository;
+use Opus\Common\Title;
+use Opus\Search\Util\Query;
+
 /**
- * Class Export_Model_XmlExportTest
- *
  * @covers \Export_Model_XmlExport
  */
 class Export_Model_XmlExportTest extends ControllerTestCase
 {
+    /** @var string[] */
+    protected $additionalResources = ['database'];
 
-    protected $additionalResources = ['database', 'authz'];
-
-    /**
-     * @var \Export_Model_XmlExport
-     */
+    /** @var Export_Model_XmlExport */
     private $plugin;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
@@ -56,9 +53,9 @@ class Export_Model_XmlExportTest extends ControllerTestCase
         $plugin->setResponse($this->getResponse());
         $plugin->init();
         $plugin->setConfig(new Zend_Config([
-            'class' => 'Export_Model_XmlExport',
+            'class'             => 'Export_Model_XmlExport',
             'maxDocumentsGuest' => '100',
-            'maxDocumentsUser' => '500',
+            'maxDocumentsUser'  => '500',
         ]));
 
         $this->plugin = $plugin;
@@ -68,45 +65,51 @@ class Export_Model_XmlExportTest extends ControllerTestCase
     {
         $doc = $this->createTestDocument();
         $doc->setServerState('published');
-        $title = new Opus_Title();
+        $title = Title::new();
         $title->setLanguage('deu');
         $title->setValue('Deutscher Titel');
         $doc->setTitleMain($title);
-        $doc->store();
+        $docId = $doc->store();
 
         $this->_request->setMethod('POST')->setPost([
-            'searchtype' => 'all'
+            'searchtype' => 'all',
         ]);
 
         $this->plugin->prepareXml();
 
-        $xpath = new DOMXPath($this->plugin->getXml());
-        $result = $xpath->query('//Opus_Document');
+        $xml   = $this->plugin->getXml();
+        $xpath = new DOMXPath($xml);
 
-        // in OPUSVIER-3336 wurde die Sortierreihenfolge geändert, dh es wird nicht mehr aufsteigend nach id sortiert
-        $this->assertEquals('Deutscher Titel', $result->item(0)->childNodes->item(3)->attributes->item(2)->nodeValue);
+        $result = $xpath->query("//Opus_Document[@Id=\"$docId\"]");
+
+        $this->assertEquals(1, $result->length);
+
+        $this->assertEquals(
+            'Deutscher Titel',
+            $xpath->query("//Opus_Document[@Id=\"$docId\"]/TitleMain/@Value")->item(0)->nodeValue
+        );
     }
 
     public function testXmlPreparationForFrontdoor()
     {
         $doc = $this->createTestDocument();
         $doc->setServerState('published');
-        $title = new Opus_Title();
+        $title = Title::new();
         $title->setLanguage('deu');
         $title->setValue('Deutscher Titel');
         $doc->setTitleMain($title);
         $docId = $doc->store();
 
         $this->getRequest()->setMethod('POST')->setPost([
-            'docId' => $docId,
-            'searchtype' => 'id'
+            'docId'      => $docId,
+            'searchtype' => 'id',
         ]);
 
         $this->plugin->prepareXml();
 
-        $xpath = new DOMXPath($this->plugin->getXml());
+        $xpath  = new DOMXPath($this->plugin->getXml());
         $result = $xpath->query('//Opus_Document');
-        $count = $result->length;
+        $count  = $result->length;
 
         $this->assertEquals('Deutscher Titel', $result->item(--$count)->childNodes->item(3)->attributes->item(2)->nodeValue);
     }
@@ -114,12 +117,12 @@ class Export_Model_XmlExportTest extends ControllerTestCase
     public function testXmlPreparationForFrontdoorWithWrongDocId()
     {
         $this->getRequest()->setMethod('POST')->setPost([
-            'docId' => 'docId',
-            'searchtype' => 'id'
+            'docId'      => 'docId',
+            'searchtype' => 'id',
         ]);
 
         $this->plugin->prepareXml();
-        $xpath = new DOMXPath($this->plugin->getXml());
+        $xpath  = new DOMXPath($this->plugin->getXml());
         $result = $xpath->query('//Opus_Document');
         $this->assertEquals(0, $result->length);
     }
@@ -127,10 +130,10 @@ class Export_Model_XmlExportTest extends ControllerTestCase
     public function testXmlPreparationForFrontdoorWithMissingDocId()
     {
         $this->getRequest()->setMethod('POST')->setPost([
-            'searchtype' => 'id'
+            'searchtype' => 'id',
         ]);
         $this->plugin->prepareXml();
-        $xpath = new DOMXPath($this->plugin->getXml());
+        $xpath  = new DOMXPath($this->plugin->getXml());
         $result = $xpath->query('//Opus_Document');
         $this->assertEquals(0, $result->length);
     }
@@ -158,20 +161,20 @@ class Export_Model_XmlExportTest extends ControllerTestCase
         $thirdDocId = $thirdDoc->store();
 
         // Dokument aus dem Cache löschen
-        $documentCacheTable = new Opus_Db_DocumentXmlCache();
-        $documentCacheTable->delete('document_id = ' . $secondDocId);
-        $documentCacheTable->delete('document_id = ' . $firstDocId);
+        $documentCache = Repository::getInstance()->getDocumentXmlCache();
+        $documentCache->remove($secondDocId);
+        $documentCache->remove($firstDocId);
 
         $this->getRequest()->setMethod('POST')->setPost([
             'searchtype' => 'all',
-            'sortfield' => 'year',
-            'sortorder' => 'desc',
-            'rows' => '10' // die ersten 10 Dokumente reichen
+            'sortfield'  => 'year',
+            'sortorder'  => 'desc',
+            'rows'       => '10', // die ersten 10 Dokumente reichen
         ]);
 
         $this->plugin->prepareXml();
 
-        $xpath = new DOMXPath($this->plugin->getXml());
+        $xpath  = new DOMXPath($this->plugin->getXml());
         $result = $xpath->query('//Opus_Document');
 
         $this->assertEquals(10, $result->length);
@@ -198,12 +201,12 @@ class Export_Model_XmlExportTest extends ControllerTestCase
 
         $this->getRequest()->setMethod('POST')->setPost([
             'searchtype' => 'id',
-            'docId' => $docId
+            'docId'      => $docId,
         ]);
 
         $this->plugin->prepareXml();
 
-        $xpath = new DOMXPath($this->plugin->getXml());
+        $xpath  = new DOMXPath($this->plugin->getXml());
         $result = $xpath->query('//Opus_Document');
 
         $this->restoreSecuritySetting();
@@ -219,15 +222,15 @@ class Export_Model_XmlExportTest extends ControllerTestCase
         $this->enableSecurity();
         $this->assertSecurityConfigured();
 
-        $doc = $this->createTestDocument();
+        $doc   = $this->createTestDocument();
         $docId = $doc->store();
 
         $this->getRequest()->setMethod('POST')->setPost([
             'searchtype' => 'id',
-            'docId' => $docId
+            'docId'      => $docId,
         ]);
 
-        $this->setExpectedException('Application_Export_Exception');
+        $this->expectException(Application_Export_Exception::class);
         $this->plugin->prepareXml();
 
         $this->restoreSecuritySetting();
@@ -235,7 +238,7 @@ class Export_Model_XmlExportTest extends ControllerTestCase
 
     public function testGetMaxRows()
     {
-        $this->assertEquals(Opus\Search\Util\Query::MAX_ROWS, $this->plugin->getMaxRows());
+        $this->assertEquals(Query::MAX_ROWS, $this->plugin->getMaxRows());
 
         $this->enableSecurity();
 
@@ -247,7 +250,7 @@ class Export_Model_XmlExportTest extends ControllerTestCase
 
         $this->loginUser('admin', 'adminadmin');
 
-        $this->assertEquals(Opus\Search\Util\Query::MAX_ROWS, $this->plugin->getMaxRows());
+        $this->assertEquals(Query::MAX_ROWS, $this->plugin->getMaxRows());
     }
 
     public function testGetValueIfValid()
@@ -273,28 +276,32 @@ class Export_Model_XmlExportTest extends ControllerTestCase
 
         $plugin->setDownloadEnabled(null);
 
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config([
-            'export' => ['download' => self::CONFIG_VALUE_FALSE]
-        ]));
+        $this->adjustConfiguration([
+            'export' => ['download' => self::CONFIG_VALUE_FALSE],
+        ]);
 
         $this->assertFalse($plugin->isDownloadEnabled());
     }
 
+    /**
+     * @return array
+     */
     public function setDownloadEnabledInvalidArgumentProvider()
     {
         return [
             ['on'],
             [123],
-            [1]
+            [1],
         ];
     }
 
     /**
-     * @expectedException InvalidArgumentException
      * @dataProvider setDownloadEnabledInvalidArgumentProvider
+     * @param mixed $argument
      */
     public function testSetDownloadEnabledInvalidArgument($argument)
     {
+        $this->expectException(InvalidArgumentException::class);
         $this->plugin->setDownloadEnabled($argument);
     }
 
@@ -353,5 +360,15 @@ class Export_Model_XmlExportTest extends ControllerTestCase
         $plugin->setAttachmentFilename('fulltext.pdf');
 
         $this->assertEquals('fulltext.pdf', $plugin->getAttachmentFilename());
+    }
+
+    public function testGetDocumentsFromCache()
+    {
+        $plugin = $this->plugin;
+
+        $xml = $plugin->getDocumentsFromCache([146, 89, 90]);
+
+        $this->assertCount(3, $xml);
+        $this->assertEquals([146, 89, 90], array_keys($xml)); // order is preserved
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,30 +25,25 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Tests
- * @package     Admin
- * @author      Edouard Simon <edouard.simon@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
 /**
- * Class Admin_InfoControllerTest
- *
  * @covers Admin_InfoController
  */
 class Admin_InfoControllerTest extends ControllerTestCase
 {
-
+    /** @var string */
     protected $additionalResources = 'all';
 
     public function testIndexDisplayVersion()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config = $this->getConfig();
         $this->dispatch('admin/info');
         $this->assertResponseCode(200);
-        $this->assertQuery('dt#admin_info_version');
-        $this->assertQueryContentContains("//dt[@id='admin_info_version']/following-sibling::dd", $config->version);
+        $this->assertQuery('//div[@class="opus-version-info"]');
+        $this->assertQueryContentContains("//div[@class='opus-version-info']", $config->version);
         $this->validateXHTML();
     }
 
@@ -62,8 +58,8 @@ class Admin_InfoControllerTest extends ControllerTestCase
         $versionHelper = Zend_Controller_Action_HelperBroker::getStaticHelper('version');
         $versionHelper->setVersion('4.6');
 
-        $config = Zend_Registry::get('Zend_Config');
-        $oldVersion = $config->version;
+        $config          = $this->getConfig();
+        $oldVersion      = $config->version;
         $config->version = '4.5-TEST';
         $this->dispatch('admin/info/update');
         $config->version = $oldVersion;
@@ -81,7 +77,7 @@ class Admin_InfoControllerTest extends ControllerTestCase
     {
         $this->useEnglish();
         $helper = Zend_Controller_Action_HelperBroker::getStaticHelper('version');
-        $helper->setVersion(Zend_Registry::get('Zend_Config')->version);
+        $helper->setVersion($this->getConfig()->version);
 
         $this->dispatch('admin/info/update');
         $this->assertQueryContentContains('//div', 'Your OPUS version is up to date.');

@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,12 +25,12 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Unit Tests
- * @author      Sascha Szott <szott@zib.de>
- * @author      Maximilian Salomon <salomon@zib.de>
  * @copyright   Copyright (c) 2018, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Document;
+use Opus\Common\Identifier;
 
 /**
  * Unit tests for Admin_ReportController
@@ -38,50 +39,41 @@
  */
 class Admin_ReportControllerTest extends ControllerTestCase
 {
-
+    /** @var string */
     protected $additionalResources = 'all';
 
-    private $config;
-
+    /** @var int[] */
     private $docIds;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
-        // backup config
-        $this->config = Zend_Registry::get('Zend_Config');
-
         // modify DOI config
-        $config = Zend_Registry::get('Zend_Config');
-        $config->merge(new Zend_Config([
+        $this->adjustConfiguration([
             'doi' => [
-                'prefix' => '10.5072',
+                'prefix'      => '10.5072',
                 'localPrefix' => 'opustest',
-                'registration' =>
-                    [
-                        'datacite' =>
-                            [
-                                'username' => 'test',
-                                'password' => 'secret',
-                                'serviceUrl' => 'http://192.0.2.1:54321'
-                            ]
-                    ]
-            ]
-        ]));
-        Zend_Registry::set('Zend_Config', $config);
+                'registration'
+                    => [
+                        'datacite'
+                            => [
+                                'username'   => 'test',
+                                'password'   => 'secret',
+                                'serviceUrl' => 'http://192.0.2.1:54321',
+                            ],
+                    ],
+            ],
+        ]);
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
-        // restore config
-        Zend_Registry::set('Zend_Config', $this->config);
-
-        if (! is_null($this->docIds)) {
+        if ($this->docIds !== null) {
             // removed previously created test documents from database
             foreach ($this->docIds as $docId) {
-                $doc = new Opus_Document($docId);
-                $doc->deletePermanent();
+                $doc = Document::get($docId);
+                $doc->delete();
             }
         }
 
@@ -165,10 +157,10 @@ class Admin_ReportControllerTest extends ControllerTestCase
         $this->createTestDocs();
         $docId = $this->docIds[1];
 
-        $this->request->setMethod('POST')
+        $this->getRequest()->setMethod('POST')
             ->setPost([
-                'op' => 'register',
-                'docId' => $docId
+                'op'    => 'register',
+                'docId' => $docId,
             ]);
         $this->dispatch('/admin/report/doi');
         $this->assertResponseCode(302);
@@ -182,10 +174,11 @@ class Admin_ReportControllerTest extends ControllerTestCase
         $this->createTestDocs();
         $docId = $this->docIds[2];
 
-        $this->request->setMethod('POST')
+        $this->getRequest()
+            ->setMethod('POST')
             ->setPost([
-                'op' => 'verify',
-                'docId' => $docId
+                'op'    => 'verify',
+                'docId' => $docId,
             ]);
         $this->dispatch('/admin/report/doi');
         $this->assertResponseCode(302);
@@ -199,10 +192,11 @@ class Admin_ReportControllerTest extends ControllerTestCase
         $this->createTestDocs();
         $docId = $this->docIds[3];
 
-        $this->request->setMethod('POST')
+        $this->getRequest()
+            ->setMethod('POST')
             ->setPost([
-                'op' => 'verify',
-                'docId' => $docId
+                'op'    => 'verify',
+                'docId' => $docId,
             ]);
         $this->dispatch('/admin/report/doi');
         $this->assertResponseCode(302);
@@ -215,9 +209,10 @@ class Admin_ReportControllerTest extends ControllerTestCase
     {
         $this->createTestDocs();
 
-        $this->request->setMethod('POST')
+        $this->getRequest()
+            ->setMethod('POST')
             ->setPost([
-                'op' => 'register'
+                'op' => 'register',
             ]);
         $this->dispatch('/admin/report/doi');
         $this->assertResponseCode(302);
@@ -230,9 +225,10 @@ class Admin_ReportControllerTest extends ControllerTestCase
     {
         $this->createTestDocs();
 
-        $this->request->setMethod('POST')
+        $this->getRequest()
+            ->setMethod('POST')
             ->setPost([
-                'op' => 'verify'
+                'op' => 'verify',
             ]);
         $this->dispatch('/admin/report/doi');
         $this->assertResponseCode(302);
@@ -255,14 +251,19 @@ class Admin_ReportControllerTest extends ControllerTestCase
         $this->createTestDocWithDoi('published', null, false);
     }
 
+    /**
+     * @param string $serverState
+     * @param string $doiStatus
+     * @param bool   $local
+     */
     private function createTestDocWithDoi($serverState, $doiStatus, $local = true)
     {
-        $doc = new Opus_Document();
+        $doc = Document::new();
         $doc->setServerState($serverState);
-        $docId = $doc->store();
+        $docId          = $doc->store();
         $this->docIds[] = $docId;
 
-        $doi = new Opus_Identifier();
+        $doi = Identifier::new();
         $doi->setType('doi');
         if ($local) {
             $doi->setValue('10.5072/opustest-' . $docId);

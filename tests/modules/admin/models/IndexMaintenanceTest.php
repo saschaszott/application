@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,29 +25,32 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Tests
- * @author      Sascha Szott <szott@zib.de>
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Config;
+use Opus\Common\Job;
+use Opus\Common\Log;
+use Opus\Job\Runner;
+use Opus\Search\Task\ConsistencyCheck;
+
 class Admin_Model_IndexMaintenanceTest extends ControllerTestCase
 {
-
+    /** @var bool */
     protected $configModifiable = true;
 
+    /** @var string */
     protected $additionalResources = 'database';
 
-    public function tearDown()
+    public function tearDown(): void
     {
-        if (! is_null($this->config)) {
-            Zend_Registry::set('Zend_Config', $this->config);
+        if ($this->config !== null) {
+            Config::set($this->config); // TODO why is this here?
         }
 
         // Cleanup of Log File
-        $config = Zend_Registry::get('Zend_Config');
+        $config   = $this->getConfig();
         $filename = $config->workspacePath . DIRECTORY_SEPARATOR . 'log' . DIRECTORY_SEPARATOR . 'opus_consistency-check.log';
         if (file_exists($filename)) {
             unlink($filename);
@@ -58,7 +62,7 @@ class Admin_Model_IndexMaintenanceTest extends ControllerTestCase
         }
 
         // Cleanup of Jobs Table
-        $jobs = Opus_Job::getByLabels([Opus\Search\Task\ConsistencyCheck::LABEL]);
+        $jobs = Job::getByLabels([ConsistencyCheck::LABEL]);
         foreach ($jobs as $job) {
             try {
                 $job->delete();
@@ -100,16 +104,16 @@ class Admin_Model_IndexMaintenanceTest extends ControllerTestCase
 
     private function enableAsyncMode()
     {
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config([
-            'runjobs' => ['asynchronous' => self::CONFIG_VALUE_TRUE]
-        ]));
+        $this->adjustConfiguration([
+            'runjobs' => ['asynchronous' => self::CONFIG_VALUE_TRUE],
+        ]);
     }
 
     private function enableAsyncIndexmaintenanceMode()
     {
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config([
-            'runjobs' => ['indexmaintenance' => ['asynchronous' => self::CONFIG_VALUE_TRUE]]
-        ]));
+        $this->adjustConfiguration([
+            'runjobs' => ['indexmaintenance' => ['asynchronous' => self::CONFIG_VALUE_TRUE]],
+        ]);
     }
 
     public function testAllowConsistencyCheck()
@@ -118,7 +122,7 @@ class Admin_Model_IndexMaintenanceTest extends ControllerTestCase
         $this->assertTrue($model->allowConsistencyCheck());
     }
 
-    /*
+    /**
      * TODO will be implemented in later version OPUSVIER-2956
      */
     public function testNotAllowIndexOptimization()
@@ -127,7 +131,7 @@ class Admin_Model_IndexMaintenanceTest extends ControllerTestCase
         $this->assertFalse($model->allowIndexOptimization());
     }
 
-    /*
+    /**
      * TODO will be implemented in later version OPUSVIER-2955
      */
     public function testNotAllowFulltextExtractionCheck()
@@ -144,7 +148,7 @@ class Admin_Model_IndexMaintenanceTest extends ControllerTestCase
         $model->createJob();
         $this->assertFalse($model->allowConsistencyCheck());
 
-        $this->assertEquals(1, Opus_Job::getCountForLabel(Opus\Search\Task\ConsistencyCheck::LABEL));
+        $this->assertEquals(1, Job::getCountForLabel(ConsistencyCheck::LABEL));
     }
 
     public function testNotAllowConsistencyCheckAlt()
@@ -155,7 +159,7 @@ class Admin_Model_IndexMaintenanceTest extends ControllerTestCase
         $model->createJob();
         $this->assertFalse($model->allowConsistencyCheck());
 
-        $this->assertEquals(1, Opus_Job::getCountForLabel(Opus\Search\Task\ConsistencyCheck::LABEL));
+        $this->assertEquals(1, Job::getCountForLabel(ConsistencyCheck::LABEL));
     }
 
     public function testProcessingStateInvalidContext()
@@ -167,15 +171,15 @@ class Admin_Model_IndexMaintenanceTest extends ControllerTestCase
 
     private function runJobImmediately()
     {
-        $this->assertEquals(1, Opus_Job::getCountForLabel(Opus\Search\Task\ConsistencyCheck::LABEL));
+        $this->assertEquals(1, Job::getCountForLabel(ConsistencyCheck::LABEL));
 
-        $jobrunner = new Opus_Job_Runner;
-        $jobrunner->setLogger(Zend_Registry::get('Zend_Log'));
-        $worker = new Opus\Search\Task\ConsistencyCheck();
+        $jobrunner = new Runner();
+        $jobrunner->setLogger(Log::get());
+        $worker = new ConsistencyCheck();
         $jobrunner->registerWorker($worker);
         $jobrunner->run();
 
-        $this->assertEquals(0, Opus_Job::getCountForLabel(Opus\Search\Task\ConsistencyCheck::LABEL));
+        $this->assertEquals(0, Job::getCountForLabel(ConsistencyCheck::LABEL));
     }
 
     public function testProcessingStateInitial()
@@ -241,9 +245,9 @@ class Admin_Model_IndexMaintenanceTest extends ControllerTestCase
     {
         $this->enableAsyncMode();
 
-        $finder = new Opus_DocumentFinder();
+        $finder = $this->getDocumentFinder();
         $finder->setServerState('published');
-        $numOfPublishedDocs = $finder->count();
+        $numOfPublishedDocs = $finder->getCount();
 
         $model = new Admin_Model_IndexMaintenance();
         $model->createJob();
@@ -261,9 +265,12 @@ class Admin_Model_IndexMaintenanceTest extends ControllerTestCase
         $this->assertContains('Completed operation after ', $logdata->getContent());
     }
 
+    /**
+     * @param bool $lock
+     */
     private function touchLogfile($lock = false)
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config = $this->getConfig();
         if ($lock) {
             $filename = $config->workspacePath . DIRECTORY_SEPARATOR . 'log' . DIRECTORY_SEPARATOR . 'opus_consistency-check.log.lock';
         } else {
@@ -279,7 +286,7 @@ class Admin_Model_IndexMaintenanceTest extends ControllerTestCase
         $this->enableAsyncMode();
 
         $model = new Admin_Model_IndexMaintenance();
-        $id1 = $model->createJob();
+        $id1   = $model->createJob();
         $this->assertFalse(is_bool($id1));
         $this->assertTrue($id1 >= 0, "Job seems to be not unique (id is $id1)");
 
@@ -291,7 +298,7 @@ class Admin_Model_IndexMaintenanceTest extends ControllerTestCase
     public function testSubmitJobAndExecuteSynchronosly()
     {
         $model = new Admin_Model_IndexMaintenance();
-        $id = $model->createJob();
+        $id    = $model->createJob();
         $this->assertFalse($id);
     }
 }

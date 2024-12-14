@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,25 +25,26 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2013-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2013, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Document;
+use Opus\Common\Subject;
 
 /**
  * Unit Tests fuer Unterformular fuer ein Subject im Metadaten-Formular.
  */
 class Admin_Form_Document_SubjectTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['view', 'translation'];
 
     public function testCreateForm()
     {
         $form = new Admin_Form_Document_Subject('psyndex');
 
-        $this->assertEquals(4, count($form->getElements()));
+        $this->assertCount(4, $form->getElements());
 
         $this->assertNotNull($form->getElement('Id'));
         $this->assertNotNull($form->getElement('Value'));
@@ -57,7 +59,7 @@ class Admin_Form_Document_SubjectTest extends ControllerTestCase
     {
         $form = new Admin_Form_Document_Subject('swd', 'deu');
 
-        $this->assertEquals(4, count($form->getElements()));
+        $this->assertCount(4, $form->getElements());
 
         $this->assertNotNull($form->getElement('Id'));
         $this->assertNotNull($form->getElement('Value'));
@@ -76,8 +78,8 @@ class Admin_Form_Document_SubjectTest extends ControllerTestCase
     {
         $form = new Admin_Form_Document_Subject('swd', 'deu');
 
-        $document = new Opus_Document(146);
-        $subjects = $document->getSubject();
+        $document   = Document::get(146);
+        $subjects   = $document->getSubject();
         $subjectSwd = $subjects[0];
 
         $this->assertEquals('swd', $subjectSwd->getType());
@@ -98,7 +100,7 @@ class Admin_Form_Document_SubjectTest extends ControllerTestCase
         $form->getElement('Value')->setValue('Test Schlagwort');
         $form->getElement('ExternalKey')->setValue('Test Schluessel');
 
-        $subject = new Opus_Subject();
+        $subject = Subject::new();
 
         $form->updateModel($subject);
 
@@ -112,9 +114,9 @@ class Admin_Form_Document_SubjectTest extends ControllerTestCase
     {
         $form = new Admin_Form_Document_Subject('uncontrolled');
 
-        $document = new Opus_Document(146);
+        $document = Document::get(146);
         $subjects = $document->getSubject();
-        $subject = $subjects[1];
+        $subject  = $subjects[1];
 
         $this->assertEquals('uncontrolled', $subject->getType());
 
@@ -170,7 +172,7 @@ class Admin_Form_Document_SubjectTest extends ControllerTestCase
 
         $messages = $logger->getMessages();
 
-        $this->assertEquals(1, count($messages));
+        $this->assertCount(1, $messages);
         $this->assertContains('Unknown subject ID = \'7777\'.', $messages[0]);
     }
 
@@ -197,7 +199,7 @@ class Admin_Form_Document_SubjectTest extends ControllerTestCase
         $form = new Admin_Form_Document_Subject('swd', 'deu');
 
         $post = [
-            'Value' => ' ' // darf nicht leer sein
+            'Value' => ' ', // darf nicht leer sein
         ];
 
         $this->assertFalse($form->isValid($post));

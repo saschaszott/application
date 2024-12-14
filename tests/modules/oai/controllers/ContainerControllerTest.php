@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,21 +25,20 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Tests
- * @package     Oai
- * @author      Sascha Szott <szott@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\File;
+use Opus\Common\UserRole;
+use Opus\Common\Util\File as FileUtil;
+
 /**
- * Class Oai_ContainerControllerTest.
- *
  * @covers Oai_ContainerController
  */
 class Oai_ContainerControllerTest extends ControllerTestCase
 {
-
+    /** @var string */
     protected $additionalResources = 'all';
 
     public function testRequestWithoutDocId()
@@ -73,9 +73,9 @@ class Oai_ContainerControllerTest extends ControllerTestCase
 
     public function testRequestUnpublishedDoc()
     {
-        $r = Opus_UserRole::fetchByName('guest');
+        $r = UserRole::fetchByName('guest');
 
-        $modules = $r->listAccessModules();
+        $modules            = $r->listAccessModules();
         $addOaiModuleAccess = ! in_array('oai', $modules);
         if ($addOaiModuleAccess) {
             $r->appendAccessModule('oai');
@@ -83,9 +83,8 @@ class Oai_ContainerControllerTest extends ControllerTestCase
         }
 
         // enable security
-        $config = Zend_Registry::get('Zend_Config');
+        $config           = $this->getConfig();
         $config->security = self::CONFIG_VALUE_TRUE;
-        Zend_Registry::set('Zend_Config', $config);
 
         $doc = $this->createTestDocument();
         $doc->setServerState('unpublished');
@@ -115,8 +114,8 @@ class Oai_ContainerControllerTest extends ControllerTestCase
     public function testRequestPublishedDocWithInaccessibleFile()
     {
         // create test file test.pdf in file system
-        $config = Zend_Registry::get('Zend_Config');
-        $path = $config->workspacePath . DIRECTORY_SEPARATOR . uniqid();
+        $config = $this->getConfig();
+        $path   = $config->workspacePath . DIRECTORY_SEPARATOR . uniqid();
         mkdir($path, 0777, true);
         $filepath = $path . DIRECTORY_SEPARATOR . 'test.pdf';
         touch($filepath);
@@ -124,7 +123,7 @@ class Oai_ContainerControllerTest extends ControllerTestCase
         $doc = $this->createTestDocument();
         $doc->setServerState('published');
 
-        $file = new Opus_File();
+        $file = File::new();
         $file->setVisibleInOai(false);
         $file->setPathName('test.pdf');
         $file->setTempFile($filepath);
@@ -135,7 +134,7 @@ class Oai_ContainerControllerTest extends ControllerTestCase
 
         // cleanup
         $file->delete();
-        Opus_Util_File::deleteDirectory($path);
+        FileUtil::deleteDirectory($path);
 
         $this->assertResponseCode(500);
         $this->assertContains(
@@ -147,13 +146,13 @@ class Oai_ContainerControllerTest extends ControllerTestCase
     public function testRequestPublishedDocWithAccessibleFile()
     {
         $this->markTestIncomplete(
-            'build breaks when running this test on ci system ' .
-            '-- it seems that phpunit does not allow to test for file downloads'
+            'build breaks when running this test on ci system '
+            . '-- it seems that phpunit does not allow to test for file downloads'
         );
 
         // create test file test.pdf in file system
-        $config = Zend_Registry::get('Zend_Config');
-        $path = $config->workspacePath . DIRECTORY_SEPARATOR . uniqid();
+        $config = $this->getConfig();
+        $path   = $config->workspacePath . DIRECTORY_SEPARATOR . uniqid();
         mkdir($path, 0777, true);
         $filepath = $path . DIRECTORY_SEPARATOR . 'test.pdf';
         touch($filepath);
@@ -161,7 +160,7 @@ class Oai_ContainerControllerTest extends ControllerTestCase
         $doc = $this->createTestDocument();
         $doc->setServerState('published');
 
-        $file = new Opus_File();
+        $file = File::new();
         $file->setVisibleInOai(true);
         $file->setPathName('test.pdf');
         $file->setTempFile($filepath);
@@ -172,7 +171,7 @@ class Oai_ContainerControllerTest extends ControllerTestCase
 
         // cleanup
         $file->delete();
-        Opus_Util_File::deleteDirectory($path);
+        FileUtil::deleteDirectory($path);
 
         $this->assertResponseCode(200);
     }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -25,28 +26,18 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Module_Oai
- * @author      Felix Ostrowski <ostrowski@hbz-nrw.de>
- * @author      Simone Finkbeiner <simone.finkbeiner@ub.uni-stuttgart.de>
- * @author      Henning Gerhardt <henning.gerhardt@slub-dresden.de>
- * @author      Michael Lang <lang@zib.de>
- * @author      Thoralf Klein <thoralf.klein@zib.de>
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2009 - 2018, OPUS 4 development team
+ * @copyright   Copyright (c) 2009, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
- *
+ */
+
+/**
  * TODO move all processing into model classes for testing and reuse
  * TODO refactor code for returning multiple errors
  */
-
 class Oai_IndexController extends Application_Controller_ModuleAccess
 {
-
     /**
      * Do some initialization on startup of every action
-     *
-     * @return void
      */
     public function init()
     {
@@ -69,31 +60,30 @@ class Oai_IndexController extends Application_Controller_ModuleAccess
         $this->_xml->appendChild($element);
     }
 
-
     /**
      * Entry point for all OAI-PMH requests.
-     *
-     * @return void
      */
     public function indexAction()
     {
+        $request = $this->getRequest();
+
         // to handle POST and GET Request, take any given parameter
-        $oaiRequest = $this->getRequest()->getParams();
+        $parameters = $request->getParams();
 
         // remove parameters which are "safe" to remove
         $safeRemoveParameters = ['module', 'controller', 'action', 'role'];
 
-        foreach ($safeRemoveParameters as $parameter) {
-            unset($oaiRequest[$parameter]);
+        foreach ($safeRemoveParameters as $name) {
+            unset($parameters[$name]);
         }
 
-        $server = new Oai_Model_Server();
+        $server = new Oai_Model_Server(); // TODO needs factory
         $server->setScriptPath($this->view->getScriptPath('index'));
         $server->setBaseUrl($this->view->fullUrl());
-        $server->setBaseUri($this->getRequest()->getBaseUrl());
+        $server->setBaseUri($request->getBaseUrl());
         $server->setResponse($this->getResponse()); // TODO temporary hack
 
-        $this->getResponse()->setBody($server->handleRequest($oaiRequest, $this->getRequest()->getRequestUri()));
+        $this->getResponse()->setBody($server->handleRequest($parameters, $request->getRequestUri()));
         $this->getResponse()->setHeader('Content-Type', 'text/xml; charset=UTF-8', true);
     }
 }

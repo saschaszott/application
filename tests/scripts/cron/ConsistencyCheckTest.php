@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,25 +25,29 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Cronjob
- * @package     Tests
- * @author      Sascha Szott <szott@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
-require_once('CronTestCase.php');
+require_once 'CronTestCase.php';
+
+use Opus\Common\Job;
+use Opus\Search\Service;
+use Opus\Search\Task\ConsistencyCheck;
 
 class ConsistencyCheckTest extends CronTestCase
 {
-
+    /** @var string */
     protected $additionalResources = 'database';
 
+    /**
+     * @return int
+     */
     private function getPublishedDocumentCount()
     {
-        $finder = new Opus_DocumentFinder();
+        $finder = $this->getDocumentFinder();
         $finder->setServerState('published');
-        return count($finder->ids());
+        return $finder->getCount();
     }
 
     /**
@@ -50,13 +55,13 @@ class ConsistencyCheckTest extends CronTestCase
      */
     public function testJobSuccess()
     {
-        $this->createJob(Opus\Search\Task\ConsistencyCheck::LABEL);
+        $this->createJob(ConsistencyCheck::LABEL);
         $this->executeScript('cron-check-consistency.php');
 
-        $allJobs = Opus_Job::getByLabels([Opus\Search\Task\ConsistencyCheck::LABEL], null, Opus_Job::STATE_UNDEFINED);
+        $allJobs = Job::getByLabels([ConsistencyCheck::LABEL], null, Job::STATE_UNDEFINED);
         $this->assertTrue(empty($allJobs), 'Expected no more jobs in queue: found ' . count($allJobs) . ' jobs');
 
-        $failedJobs = Opus_Job::getByLabels([Opus\Search\Task\ConsistencyCheck::LABEL], null, Opus_Job::STATE_FAILED);
+        $failedJobs = Job::getByLabels([ConsistencyCheck::LABEL], null, Job::STATE_FAILED);
         $this->assertTrue(empty($failedJobs), 'Expected no failed jobs in queue: found ' . count($failedJobs) . ' jobs');
 
         $logPath = parent::$scriptPath . '/../../workspace/log/';
@@ -89,16 +94,16 @@ class ConsistencyCheckTest extends CronTestCase
      */
     public function testJobSuccessWithInconsistency()
     {
-        $service = Opus\Search\Service::selectIndexingService(null, 'solr');
+        $service = Service::selectIndexingService(null, 'solr');
         $service->removeAllDocumentsFromIndex();
 
-        $this->createJob(Opus\Search\Task\ConsistencyCheck::LABEL);
+        $this->createJob(ConsistencyCheck::LABEL);
         $this->executeScript('cron-check-consistency.php');
 
-        $allJobs = Opus_Job::getByLabels([Opus\Search\Task\ConsistencyCheck::LABEL], null, Opus_Job::STATE_UNDEFINED);
+        $allJobs = Job::getByLabels([ConsistencyCheck::LABEL], null, Job::STATE_UNDEFINED);
         $this->assertTrue(empty($allJobs), 'Expected no more jobs in queue: found ' . count($allJobs) . ' jobs');
 
-        $failedJobs = Opus_Job::getByLabels([Opus\Search\Task\ConsistencyCheck::LABEL], null, Opus_Job::STATE_FAILED);
+        $failedJobs = Job::getByLabels([ConsistencyCheck::LABEL], null, Job::STATE_FAILED);
         $this->assertTrue(empty($failedJobs), 'Expected no failed jobs in queue: found ' . count($failedJobs) . ' jobs');
 
         $logPath = parent::$scriptPath . '/../../workspace/log/';

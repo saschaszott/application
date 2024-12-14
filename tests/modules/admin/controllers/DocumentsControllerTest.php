@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,11 +25,12 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Tests
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\CollectionRole;
+use Opus\Common\Person;
 
 /**
  * Basic unit test for the documents controller in the admin module.
@@ -37,6 +39,7 @@
  */
 class Admin_DocumentsControllerTest extends ControllerTestCase
 {
+    /** @var string[] */
     protected $additionalResources = ['database', 'view', 'mainMenu', 'navigation', 'translation'];
 
     /**
@@ -68,7 +71,7 @@ class Admin_DocumentsControllerTest extends ControllerTestCase
      */
     public function testCollectionRoleNameGetsTranslatedForUserCollection()
     {
-        $cr = new Opus_CollectionRole();
+        $cr = CollectionRole::new();
         $cr->setName('foo');
         $cr->setOaiName('foo');
         $cr->store();
@@ -82,7 +85,7 @@ class Admin_DocumentsControllerTest extends ControllerTestCase
 
     public function testShowAllDocsForDDCCollection()
     {
-        $role = new Opus_CollectionRole(2);
+        $role            = CollectionRole::get(2);
         $displayBrowsing = $role->getDisplayBrowsing();
         $role->setDisplayBrowsing('Name');
         $role->store();
@@ -99,7 +102,7 @@ class Admin_DocumentsControllerTest extends ControllerTestCase
 
     public function testShowAllDocsForBklCollection()
     {
-        $role = new Opus_CollectionRole(7);
+        $role            = CollectionRole::get(7);
         $displayBrowsing = $role->getDisplayBrowsing();
         $role->setDisplayBrowsing('Name');
         $role->store();
@@ -144,10 +147,10 @@ class Admin_DocumentsControllerTest extends ControllerTestCase
 
     public function testShowAllHits()
     {
-        $docFinder = new Opus_DocumentFinder();
+        $docFinder = $this->getDocumentFinder();
         $docFinder->setServerState('unpublished');
 
-        $unpublishedDocs = $docFinder->count();
+        $unpublishedDocs = $docFinder->getCount();
 
         $this->dispatch('/admin/documents/index/state/unpublished/hitsperpage/all');
         $this->assertQueryCount('span.title', $unpublishedDocs);
@@ -155,15 +158,13 @@ class Admin_DocumentsControllerTest extends ControllerTestCase
 
     public function testHitsPerPageBadParameter()
     {
-        $docFinder = new Opus_DocumentFinder();
-
         $this->dispatch('/admin/documents/index/state/unpublished/hitsperpage/dummy');
         $this->assertQueryCount('span.title', 10); // default
     }
 
     public function testConfigureDefaultHitsPerPage()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                                   = $this->getConfig();
         $config->admin->documents->maxDocsDefault = '7';
 
         $this->dispatch('/admin/documents');
@@ -172,7 +173,7 @@ class Admin_DocumentsControllerTest extends ControllerTestCase
 
     public function testConfigureHitsPerPageOptions()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                                   = $this->getConfig();
         $config->admin->documents->maxDocsOptions = "20,60,all";
 
         $this->dispatch('/admin/documents');
@@ -205,7 +206,7 @@ class Admin_DocumentsControllerTest extends ControllerTestCase
 
     public function testShowAuthorFilter()
     {
-        $person = new Opus_Person();
+        $person = Person::new();
         $person->setLastName('Test');
         $person->setFirstName('Justa');
         $person->setIdentifierOrcid('0000-0000-0000-0001');
@@ -214,8 +215,8 @@ class Admin_DocumentsControllerTest extends ControllerTestCase
         $person->store();
 
         $this->dispatch(
-            '/admin/documents/index/state/all/role/author/last_name/Test/first_name/Justa' .
-            '/identifier_orcid/0000-0000-0000-0001/identifier_gnd/123456789/identifier_misc/ID1234'
+            '/admin/documents/index/state/all/role/author/last_name/Test/first_name/Justa'
+            . '/identifier_orcid/0000-0000-0000-0001/identifier_gnd/123456789/identifier_misc/ID1234'
         );
 
         $this->assertQueryContentContains('li.identifier_orcid', '0000-0000-0000-0001');

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -23,20 +24,19 @@
  * details. You should have received a copy of the GNU General Public License
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
+ * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Document;
 
 /**
  * Unit Test fuer FileManager Formular.
- *
- * @category    Application Unit Test
- * @package     Admin_Form
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
- * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 class Admin_Form_FileManagerTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['database', 'view', 'translation'];
 
     public function testConstructForm()
@@ -65,7 +65,7 @@ class Admin_Form_FileManagerTest extends ControllerTestCase
     {
         $form = new Admin_Form_FileManager();
 
-        $document = new Opus_Document(92);
+        $document = Document::get(92);
 
         $filesForm = $form->getSubForm(Admin_Form_FileManager::SUBFORM_FILES);
 
@@ -91,7 +91,7 @@ class Admin_Form_FileManagerTest extends ControllerTestCase
     {
         $form = new Admin_Form_FileManager();
 
-        $document = new Opus_Document(92);
+        $document = Document::get(92);
 
         $form->populateFromModel($document);
 
@@ -123,29 +123,30 @@ class Admin_Form_FileManagerTest extends ControllerTestCase
         $this->assertNull($form->processPost([
             'Files' => [
                 'File0' => [
-                    'Id' => 5555
-                ]
-            ]
+                    'Id' => 5555,
+                ],
+            ],
         ], null));
 
         $post = [
             'Files' => [
                 'File0' => [
-                    'Id' => 5555,
-                    'Remove' => 'Entfernen'
-                ]
-            ]];
+                    'Id'     => 5555,
+                    'Remove' => 'Entfernen',
+                ],
+            ],
+        ];
 
         $form->constructFromPost($post, null);
 
         $this->assertEquals([
             'result' => 'switch',
             'target' => [
-                'module' => 'admin',
+                'module'     => 'admin',
                 'controller' => 'filemanager',
-                'action' => 'delete',
-                'fileId' => '5555'
-            ]
+                'action'     => 'delete',
+                'fileId'     => '5555',
+            ],
         ], $form->processPost($post, null));
 
         // alles weitere wird in den Unterformularen getestet
@@ -162,17 +163,17 @@ class Admin_Form_FileManagerTest extends ControllerTestCase
 
     public function testConstructFromPost()
     {
-        $document = new Opus_Document(146);
+        $document = Document::get(146);
 
         $post = [
             'Files' => [
                 'File0' => [
-                    'Id' => 126
+                    'Id' => 126,
                 ],
                 'File1' => [
-                    'Id' => 116
-                ]
-            ]
+                    'Id' => 116,
+                ],
+            ],
         ];
 
         $form = new Admin_Form_FileManager();
@@ -206,14 +207,14 @@ class Admin_Form_FileManagerTest extends ControllerTestCase
 
     public function testGetInstanceFromPost()
     {
-        $document = new Opus_Document(146);
+        $document = Document::get(146);
 
         $post = [
             'Files' => [
                 'File0' => [
-                    'Id' => 126
-                ]
-            ]
+                    'Id' => 126,
+                ],
+            ],
         ];
 
         $form = Admin_Form_FileManager::getInstanceFromPost($post, $document);

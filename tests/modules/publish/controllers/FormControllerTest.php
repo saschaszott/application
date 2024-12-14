@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,26 +25,22 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Tests
- * @package     Publish
- * @author      Susanne Gottwald <gottwald@zib.de>
- * @author      Sascha Szott <szott@zib.de>
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Document;
+use Opus\Common\DocumentInterface;
+
 /**
- * Class Publish_FormControllerTest.
- *
  * @covers Publish_FormController
  */
 class Publish_FormControllerTest extends ControllerTestCase
 {
-
+    /** @var string */
     protected $additionalResources = 'all';
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
         $this->useGerman();
@@ -65,7 +62,7 @@ class Publish_FormControllerTest extends ControllerTestCase
      */
     public function testUploadActionWithEmptyPost()
     {
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([]);
 
@@ -80,7 +77,7 @@ class Publish_FormControllerTest extends ControllerTestCase
      */
     public function testUploadActionWithInvalidDummyPost()
     {
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'foo' => 'bar',
@@ -117,24 +114,24 @@ class Publish_FormControllerTest extends ControllerTestCase
     {
         $doc = $this->createTemporaryDoc();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'preprint';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'preprint';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'PersonSubmitterLastName_1' => 'Doe',
-                'PersonSubmitterEmail_1' => 'doe@example.org',
-                'TitleMain_1' => 'Entenhausen',
-                'TitleMainLanguage_1' => 'deu',
-                'PersonAuthorLastName_1' => 'AuthorLastName',
-                'CompletedDate' => '22.01.2011',
-                'Language' => 'deu',
-                'Licence' => '4',
-                'addMoreTitleMain' => 'Add one more title main'
+                'PersonSubmitterEmail_1'    => 'doe@example.org',
+                'TitleMain_1'               => 'Entenhausen',
+                'TitleMainLanguage_1'       => 'deu',
+                'PersonAuthorLastName_1'    => 'AuthorLastName',
+                'CompletedDate'             => '22.01.2011',
+                'Language'                  => 'deu',
+                'Licence'                   => '4',
+                'addMoreTitleMain'          => 'Add one more title main',
             ]);
 
         $this->dispatch('/publish/form/check');
@@ -158,7 +155,7 @@ class Publish_FormControllerTest extends ControllerTestCase
      */
     public function testCheckActionWithAbortInPost()
     {
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'abort' => '',
@@ -177,23 +174,23 @@ class Publish_FormControllerTest extends ControllerTestCase
     {
         $doc = $this->createTemporaryDoc();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'preprint';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'preprint';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'PersonSubmitterLastName_1' => 'Doe',
-                'PersonSubmitterEmail_1' => 'doe@example.org',
-                'TitleMain_1' => 'Entenhausen',
-                'TitleMainLanguage_1' => 'deu',
-                'CompletedDate' => '22.01.2011',
-                'Language' => 'deu',
-                'Licence' => '4',
-                'send' => 'Weiter zum nächsten Schritt'
+                'PersonSubmitterEmail_1'    => 'doe@example.org',
+                'TitleMain_1'               => 'Entenhausen',
+                'TitleMainLanguage_1'       => 'deu',
+                'CompletedDate'             => '22.01.2011',
+                'Language'                  => 'deu',
+                'Licence'                   => '4',
+                'send'                      => 'Weiter zum nächsten Schritt',
             ]);
 
         $this->dispatch('/publish/form/check');
@@ -209,25 +206,25 @@ class Publish_FormControllerTest extends ControllerTestCase
     {
         $doc = $this->createTemporaryDoc();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'preprint';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'preprint';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'PersonSubmitterLastName_1' => 'Doe',
-                'PersonSubmitterEmail_1' => 'doe@example.org',
-                'TitleMain_1' => 'Entenhausen',
-                'TitleMainLanguage_1' => 'deu',
-                'PersonAuthorLastName_1' => 'AuthorLastName',
-                'CompletedDate' => '22.01.2011',
-                'Language' => 'deu',
-                'Licence' => '4',
-                'ThesisPublisher_1' => '2',
-                'send' => 'Weiter zum nächsten Schritt'
+                'PersonSubmitterEmail_1'    => 'doe@example.org',
+                'TitleMain_1'               => 'Entenhausen',
+                'TitleMainLanguage_1'       => 'deu',
+                'PersonAuthorLastName_1'    => 'AuthorLastName',
+                'CompletedDate'             => '22.01.2011',
+                'Language'                  => 'deu',
+                'Licence'                   => '4',
+                'ThesisPublisher_1'         => '2',
+                'send'                      => 'Weiter zum nächsten Schritt',
             ]);
 
         $this->dispatch('/publish/form/check');
@@ -263,23 +260,23 @@ class Publish_FormControllerTest extends ControllerTestCase
      */
     public function testOPUSVIER1886WithBibliography()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                             = $this->getConfig();
         $config->form->first->bibliographie = self::CONFIG_VALUE_TRUE;
 
         $doc = $this->createTemporaryDoc();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'demo';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'demo';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'PersonSubmitterFirstName_1' => 'John',
-                'PersonSubmitterLastName_1' => 'Doe',
-                'send' => 'Weiter zum nächsten Schritt'
+                'PersonSubmitterLastName_1'  => 'Doe',
+                'send'                       => 'Weiter zum nächsten Schritt',
             ]);
 
         $this->dispatch('/publish/form/check');
@@ -292,25 +289,25 @@ class Publish_FormControllerTest extends ControllerTestCase
 
     public function testOPUSVIER1886WithBibliographyUnselected()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                             = $this->getConfig();
         $config->form->first->bibliographie = self::CONFIG_VALUE_TRUE;
 
         $doc = $this->createTemporaryDoc();
         $doc->setBelongsToBibliography(0);
         $doc->store();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'demo';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'demo';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'PersonSubmitterFirstName_1' => 'John',
-                'PersonSubmitterLastName_1' => 'Doe',
-                'send' => 'Weiter zum nächsten Schritt'
+                'PersonSubmitterLastName_1'  => 'Doe',
+                'send'                       => 'Weiter zum nächsten Schritt',
             ]);
 
         $this->dispatch('/publish/form/check');
@@ -323,25 +320,25 @@ class Publish_FormControllerTest extends ControllerTestCase
 
     public function testOPUSVIER1886WithBibliographySelected()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                             = $this->getConfig();
         $config->form->first->bibliographie = self::CONFIG_VALUE_TRUE;
 
         $doc = $this->createTemporaryDoc();
         $doc->setBelongsToBibliography(1);
         $doc->store();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'demo';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'demo';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'PersonSubmitterFirstName_1' => 'John',
-                'PersonSubmitterLastName_1' => 'Doe',
-                'send' => 'Weiter zum nächsten Schritt'
+                'PersonSubmitterLastName_1'  => 'Doe',
+                'send'                       => 'Weiter zum nächsten Schritt',
             ]);
 
         $this->dispatch('/publish/form/check');
@@ -357,23 +354,23 @@ class Publish_FormControllerTest extends ControllerTestCase
      */
     public function testOPUSVIER1886WithoutBibliography()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                             = $this->getConfig();
         $config->form->first->bibliographie = self::CONFIG_VALUE_FALSE;
 
         $doc = $this->createTemporaryDoc();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'demo';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'demo';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'PersonSubmitterFirstName_1' => 'John',
-                'PersonSubmitterLastName_1' => 'Doe',
-                'send' => 'Weiter zum nächsten Schritt'
+                'PersonSubmitterLastName_1'  => 'Doe',
+                'send'                       => 'Weiter zum nächsten Schritt',
             ]);
 
         $this->dispatch('/publish/form/check');
@@ -390,34 +387,34 @@ class Publish_FormControllerTest extends ControllerTestCase
     public function testFormManipulationForBibliography()
     {
         $this->markTestIncomplete('testing multipart formdata not yet solved');
-        $config = Zend_Registry::get('Zend_Config');
+        $config                             = $this->getConfig();
         $config->form->first->bibliographie = self::CONFIG_VALUE_FALSE;
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
-                'documentType' => 'demo',
+                'documentType'  => 'demo',
                 'MAX_FILE_SIZE' => '10240000',
-                'fileupload' => '',
+                'fileupload'    => '',
                 'uploadComment' => '',
                 'bibliographie' => '1',
-                'rights' => '1',
-                'send' => 'Weiter zum nächsten Schritt',
+                'rights'        => '1',
+                'send'          => 'Weiter zum nächsten Schritt',
             ]);
         $this->dispatch('/publish/form/upload');
         $session = new Zend_Session_Namespace('Publish');
 
-        $doc = new Opus_Document($session->documentId);
+        $doc                   = Document::get($session->documentId);
         $belongsToBibliography = $doc->getBelongsToBibliography();
-        $doc->deletePermanent();
+        $doc->delete();
 
         $this->assertResponseCode(200);
         $this->assertNotContains("Es sind Fehler aufgetreten.", $this->response->getBody());
-        $this->assertFalse((boolean)$belongsToBibliography, 'Expected that document does not belong to bibliography');
+        $this->assertFalse((bool) $belongsToBibliography, 'Expected that document does not belong to bibliography');
     }
 
     /**
-     * @return Opus_Document
+     * @return DocumentInterface
      */
     private function createTemporaryDoc()
     {
@@ -450,73 +447,89 @@ class Publish_FormControllerTest extends ControllerTestCase
     {
         $this->fileNoticeOnSecondFormPage(self::CONFIG_VALUE_TRUE);
 
-        $this->assertContains('<h3 class="document-type" title="Dokumenttyp">Alle Felder (Testdokumenttyp)</h3>', $this->getResponse()->getBody());
-        $this->assertContains('<legend>Sie haben folgende Datei(en) hochgeladen:</legend>', $this->getResponse()->getBody());
-        $this->assertContains('<b>Es wurden keine Dateien hochgeladen.</b>', $this->getResponse()->getBody());
+        $output = $this->getResponse()->getBody();
+
+        $this->assertContains('<h3 class="document-type" title="Dokumenttyp">Alle Felder (Testdokumenttyp)</h3>', $output);
+        $this->assertContains('<legend>Sie haben folgende Datei(en) hochgeladen:</legend>', $output);
+        $this->assertContains('<b>Es wurden keine Dateien hochgeladen.</b>', $output);
     }
 
     public function testShowFileNoticeOnThirdFormPageIfFileUploadIsEnabled()
     {
         $this->fileNoticeOnThirdFormPage(self::CONFIG_VALUE_TRUE);
 
+        $output = $this->getResponse()->getBody();
+
         $this->assertResponseCode(200);
-        $this->assertContains('Bitte überprüfen Sie Ihre Eingaben', $this->getResponse()->getBody());
-        $this->assertContains('<legend>Sie haben folgende Datei(en) hochgeladen:</legend>', $this->getResponse()->getBody());
-        $this->assertContains('<b>Es wurden keine Dateien hochgeladen.</b>', $this->getResponse()->getBody());
+        $this->assertContains('Bitte überprüfen Sie Ihre Eingaben', $output);
+        $this->assertContains('<legend>Sie haben folgende Datei(en) hochgeladen:</legend>', $output);
+        $this->assertContains('<b>Es wurden keine Dateien hochgeladen.</b>', $output);
     }
 
+    /**
+     * @param string $value
+     * @throws Zend_Controller_Exception
+     */
     private function fileNoticeOnThirdFormPage($value)
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                             = $this->getConfig();
         $config->form->first->enable_upload = $value;
 
         $doc = $this->createTemporaryDoc();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'demo';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'demo';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'PersonSubmitterFirstName_1' => 'John',
-                'PersonSubmitterLastName_1' => 'Doe',
-                'send' => 'Weiter zum nächsten Schritt'
+                'PersonSubmitterLastName_1'  => 'Doe',
+                'send'                       => 'Weiter zum nächsten Schritt',
             ]);
 
         $this->dispatch('/publish/form/check');
     }
 
+    /**
+     * @param string $value
+     * @throws Zend_Controller_Exception
+     */
     private function fileNoticeOnSecondFormPage($value)
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                             = $this->getConfig();
         $config->form->first->enable_upload = $value;
 
         $doc = $this->createTemporaryDoc();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'all';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'all';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
-                'addMoreTitleMain' => 'Add one more title main'
+                'addMoreTitleMain' => 'Add one more title main',
             ]);
 
         $this->dispatch('/publish/form/check');
     }
 
+    /**
+     * @param Zend_Session_Namespace $session
+     * @param string                 $documentType
+     */
     private function addTemporaryTestDocument($session, $documentType)
     {
         $doc = $this->createTemporaryDoc();
 
-        $session->documentType = $documentType;
-        $session->documentId = $doc->getId();
+        $session->documentType     = $documentType;
+        $session->documentId       = $doc->getId();
         $session->additionalFields = [];
     }
 
@@ -528,38 +541,38 @@ class Publish_FormControllerTest extends ControllerTestCase
         $session = new Zend_Session_Namespace('Publish');
         $this->addTemporaryTestDocument($session, 'preprint');
         $data = [
-            'PersonSubmitterFirstName_1' => '',
-            'PersonSubmitterLastName_1' => '',
-            'PersonSubmitterEmail_1' => '',
-            'TitleMain_1' => '',
-            'TitleMainLanguage_1' => '',
-            'TitleAbstract_1' => '',
-            'TitleAbstractLanguage_1' => '',
-            'PersonAuthorFirstName_1' => '',
-            'PersonAuthorLastName_1' => '',
-            'PersonAuthorAcademicTitle_1' => '',
-            'PersonAuthorEmail_1' => '',
+            'PersonSubmitterFirstName_1'      => '',
+            'PersonSubmitterLastName_1'       => '',
+            'PersonSubmitterEmail_1'          => '',
+            'TitleMain_1'                     => '',
+            'TitleMainLanguage_1'             => '',
+            'TitleAbstract_1'                 => '',
+            'TitleAbstractLanguage_1'         => '',
+            'PersonAuthorFirstName_1'         => '',
+            'PersonAuthorLastName_1'          => '',
+            'PersonAuthorAcademicTitle_1'     => '',
+            'PersonAuthorEmail_1'             => '',
             'PersonAuthorAllowEmailContact_1' => '0',
-            'PersonAuthorDateOfBirth_1' => '',
-            'PersonAuthorPlaceOfBirth_1' => '',
-            'CompletedYear' => '',
-            'CompletedDate' => '07.09.2011',
-            'PageNumber' => '',
-            'SubjectUncontrolled_1' => '',
-            'SubjectUncontrolledLanguage_1' => '',
-            'Institute_1' => '',
-            'IdentifierUrn' => '',
-            'Note' => '',
-            'Language' => 'deu',
-            'Licence' => '',
-            'SeriesNumber_1' => '',
-            'Series_1' => '',
+            'PersonAuthorDateOfBirth_1'       => '',
+            'PersonAuthorPlaceOfBirth_1'      => '',
+            'CompletedYear'                   => '',
+            'CompletedDate'                   => '07.09.2011',
+            'PageNumber'                      => '',
+            'SubjectUncontrolled_1'           => '',
+            'SubjectUncontrolledLanguage_1'   => '',
+            'Institute_1'                     => '',
+            'IdentifierUrn'                   => '',
+            'Note'                            => '',
+            'Language'                        => 'deu',
+            'Licence'                         => '',
+            'SeriesNumber_1'                  => '',
+            'Series_1'                        => '',
 
-            // Add Button wurde gedrückt
+            // Add Button wurde gedrueckt
             'addMoreTitleMain' => 'Einen+weiteren+Titel+hinzufügen',
         ];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost($data);
         $this->dispatch('/publish/form/check');
@@ -581,40 +594,40 @@ class Publish_FormControllerTest extends ControllerTestCase
         $session->additionalFields['TitleMain'] = '2';
 
         $data = [
-            'PersonSubmitterFirstName_1' => '',
-            'PersonSubmitterLastName_1' => '',
-            'PersonSubmitterEmail_1' => '',
-            'TitleMain_1' => '',
-            'TitleMainLanguage_1' => '',
-            'TitleMain_2' => '',
-            'TitleMainLanguage_2' => '',
-            'TitleAbstract_1' => '',
-            'TitleAbstractLanguage_1' => '',
-            'PersonAuthorFirstName_1' => '',
-            'PersonAuthorLastName_1' => '',
-            'PersonAuthorAcademicTitle_1' => '',
-            'PersonAuthorEmail_1' => '',
+            'PersonSubmitterFirstName_1'      => '',
+            'PersonSubmitterLastName_1'       => '',
+            'PersonSubmitterEmail_1'          => '',
+            'TitleMain_1'                     => '',
+            'TitleMainLanguage_1'             => '',
+            'TitleMain_2'                     => '',
+            'TitleMainLanguage_2'             => '',
+            'TitleAbstract_1'                 => '',
+            'TitleAbstractLanguage_1'         => '',
+            'PersonAuthorFirstName_1'         => '',
+            'PersonAuthorLastName_1'          => '',
+            'PersonAuthorAcademicTitle_1'     => '',
+            'PersonAuthorEmail_1'             => '',
             'PersonAuthorAllowEmailContact_1' => '0',
-            'PersonAuthorDateOfBirth_1' => '',
-            'PersonAuthorPlaceOfBirth_1' => '',
-            'CompletedYear' => '',
-            'CompletedDate' => '07.09.2011',
-            'PageNumber' => '',
-            'SubjectUncontrolled_1' => '',
-            'SubjectUncontrolledLanguage_1' => '',
-            'Institute_1' => '',
-            'IdentifierUrn' => '',
-            'Note' => '',
-            'Language' => 'deu',
-            'Licence' => '',
-            'SeriesNumber_1' => '',
-            'Series_1' => '',
+            'PersonAuthorDateOfBirth_1'       => '',
+            'PersonAuthorPlaceOfBirth_1'      => '',
+            'CompletedYear'                   => '',
+            'CompletedDate'                   => '07.09.2011',
+            'PageNumber'                      => '',
+            'SubjectUncontrolled_1'           => '',
+            'SubjectUncontrolledLanguage_1'   => '',
+            'Institute_1'                     => '',
+            'IdentifierUrn'                   => '',
+            'Note'                            => '',
+            'Language'                        => 'deu',
+            'Licence'                         => '',
+            'SeriesNumber_1'                  => '',
+            'Series_1'                        => '',
 
-            // Delete Button wurde gedrückt
+            // Delete Button wurde gedrueckt
             'deleteMoreTitleMain' => 'Den+letzten+Titel+löschen',
         ];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost($data);
         $this->dispatch('/publish/form/check');
@@ -633,53 +646,55 @@ class Publish_FormControllerTest extends ControllerTestCase
     {
         $session = new Zend_Session_Namespace('Publish');
         $this->addTemporaryTestDocument($session, 'preprint');
-        $session->additionalFields['Institute'] = '1';
+        $session->additionalFields['Institute']          = '1';
         $session->additionalFields['collId0Institute_1'] = '1';
-        $session->additionalFields['stepInstitute_1'] = '1';
+        $session->additionalFields['stepInstitute_1']    = '1';
 
         $data = [
-            'PersonSubmitterFirstName_1' => '',
-            'PersonSubmitterLastName_1' => '',
-            'PersonSubmitterEmail_1' => '',
-            'TitleMain_1' => '',
-            'TitleMainLanguage_1' => '',
-            'TitleAbstract_1' => '',
-            'TitleAbstractLanguage_1' => '',
-            'PersonAuthorFirstName_1' => '',
-            'PersonAuthorLastName_1' => '',
-            'PersonAuthorAcademicTitle_1' => '',
-            'PersonAuthorEmail_1' => '',
+            'PersonSubmitterFirstName_1'      => '',
+            'PersonSubmitterLastName_1'       => '',
+            'PersonSubmitterEmail_1'          => '',
+            'TitleMain_1'                     => '',
+            'TitleMainLanguage_1'             => '',
+            'TitleAbstract_1'                 => '',
+            'TitleAbstractLanguage_1'         => '',
+            'PersonAuthorFirstName_1'         => '',
+            'PersonAuthorLastName_1'          => '',
+            'PersonAuthorAcademicTitle_1'     => '',
+            'PersonAuthorEmail_1'             => '',
             'PersonAuthorAllowEmailContact_1' => '0',
-            'PersonAuthorDateOfBirth_1' => '',
-            'PersonAuthorPlaceOfBirth_1' => '',
-            'CompletedYear' => '',
-            'CompletedDate' => '07.09.2011',
-            'PageNumber' => '',
-            'SubjectUncontrolled_1' => '',
-            'SubjectUncontrolledLanguage_1' => '',
-            'Institute_1' => '15994',
-            'IdentifierUrn' => '',
-            'Note' => '',
-            'Language' => 'deu',
-            'Licence' => '',
-            'SeriesNumber_1' => '',
-            'Series_1' => '',
+            'PersonAuthorDateOfBirth_1'       => '',
+            'PersonAuthorPlaceOfBirth_1'      => '',
+            'CompletedYear'                   => '',
+            'CompletedDate'                   => '07.09.2011',
+            'PageNumber'                      => '',
+            'SubjectUncontrolled_1'           => '',
+            'SubjectUncontrolledLanguage_1'   => '',
+            'Institute_1'                     => '15994',
+            'IdentifierUrn'                   => '',
+            'Note'                            => '',
+            'Language'                        => 'deu',
+            'Licence'                         => '',
+            'SeriesNumber_1'                  => '',
+            'Series_1'                        => '',
 
-            // Browse Down Button wurde gedrückt
+            // Browse Down Button wurde gedrueckt
             'browseDownInstitute' => 'runter',
         ];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost($data);
         $this->dispatch('/publish/form/check');
         $this->assertEquals('200', $this->getResponse()->getHttpResponseCode());
 
-        $this->assertEquals(6, count($session->additionalFields));
-        $this->assertEquals('15994', $session->additionalFields['collId1Institute_1']);
-        $this->assertEquals(2, $session->additionalFields['stepInstitute_1']);
-        $this->assertEquals('1', $session->additionalFields['Institute']);
-        $this->assertEquals('1', $session->additionalFields['collId0Institute_1']);
+        $additionalFields = $session->additionalFields;
+
+        $this->assertEquals(6, count($additionalFields));
+        $this->assertEquals('15994', $additionalFields['collId1Institute_1']);
+        $this->assertEquals(2, $additionalFields['stepInstitute_1']);
+        $this->assertEquals('1', $additionalFields['Institute']);
+        $this->assertEquals('1', $additionalFields['collId0Institute_1']);
     }
 
     /**
@@ -689,44 +704,44 @@ class Publish_FormControllerTest extends ControllerTestCase
     {
         $session = new Zend_Session_Namespace('Publish');
         $this->addTemporaryTestDocument($session, 'preprint');
-        $session->additionalFields['Institute'] = '1';
+        $session->additionalFields['Institute']          = '1';
         $session->additionalFields['collId0Institute_1'] = '1';
         $session->additionalFields['collId1Institute_1'] = '15994';
-        $session->additionalFields['stepInstitute_1'] = '2';
+        $session->additionalFields['stepInstitute_1']    = '2';
 
         $data = [
-            'PersonSubmitterFirstName_1' => '',
-            'PersonSubmitterLastName_1' => '',
-            'PersonSubmitterEmail_1' => '',
-            'TitleMain_1' => '',
-            'TitleMainLanguage_1' => '',
-            'TitleAbstract_1' => '',
-            'TitleAbstractLanguage_1' => '',
-            'PersonAuthorFirstName_1' => '',
-            'PersonAuthorLastName_1' => '',
-            'PersonAuthorAcademicTitle_1' => '',
-            'PersonAuthorEmail_1' => '',
+            'PersonSubmitterFirstName_1'      => '',
+            'PersonSubmitterLastName_1'       => '',
+            'PersonSubmitterEmail_1'          => '',
+            'TitleMain_1'                     => '',
+            'TitleMainLanguage_1'             => '',
+            'TitleAbstract_1'                 => '',
+            'TitleAbstractLanguage_1'         => '',
+            'PersonAuthorFirstName_1'         => '',
+            'PersonAuthorLastName_1'          => '',
+            'PersonAuthorAcademicTitle_1'     => '',
+            'PersonAuthorEmail_1'             => '',
             'PersonAuthorAllowEmailContact_1' => '0',
-            'PersonAuthorDateOfBirth_1' => '',
-            'PersonAuthorPlaceOfBirth_1' => '',
-            'CompletedYear' => '',
-            'CompletedDate' => '07.09.2011',
-            'PageNumber' => '',
-            'SubjectUncontrolled_1' => '',
-            'SubjectUncontrolledLanguage_1' => '',
-            'collId2Institute_1' => '15995',
-            'IdentifierUrn' => '',
-            'Note' => '',
-            'Language' => 'deu',
-            'Licence' => '',
-            'SeriesNumber_1' => '',
-            'Series_1' => '',
+            'PersonAuthorDateOfBirth_1'       => '',
+            'PersonAuthorPlaceOfBirth_1'      => '',
+            'CompletedYear'                   => '',
+            'CompletedDate'                   => '07.09.2011',
+            'PageNumber'                      => '',
+            'SubjectUncontrolled_1'           => '',
+            'SubjectUncontrolledLanguage_1'   => '',
+            'collId2Institute_1'              => '15995',
+            'IdentifierUrn'                   => '',
+            'Note'                            => '',
+            'Language'                        => 'deu',
+            'Licence'                         => '',
+            'SeriesNumber_1'                  => '',
+            'Series_1'                        => '',
 
-            // Browse Up Button wurde gedrückt
+            // Browse Up Button wurde gedrueckt
             'browseUpInstitute' => 'hoch',
         ];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost($data);
         $this->dispatch('/publish/form/check');
@@ -746,47 +761,47 @@ class Publish_FormControllerTest extends ControllerTestCase
     {
         $session = new Zend_Session_Namespace('Publish');
         $this->addTemporaryTestDocument($session, 'preprint');
-        $session->additionalFields['PersonSubmitter'] = '1';
-        $session->additionalFields['TitleMain'] = '1';
-        $session->additionalFields['TitleAbstract'] = '1';
-        $session->additionalFields['PersonAuthor'] = '1';
+        $session->additionalFields['PersonSubmitter']     = '1';
+        $session->additionalFields['TitleMain']           = '1';
+        $session->additionalFields['TitleAbstract']       = '1';
+        $session->additionalFields['PersonAuthor']        = '1';
         $session->additionalFields['SubjectUncontrolled'] = '1';
-        $session->additionalFields['stepInstitute_1'] = '1';
-        $session->additionalFields['collId0Institute_1'] = '1';
-        $session->additionalFields['Institute'] = '1';
-        $session->additionalFields['Series'] = '1';
+        $session->additionalFields['stepInstitute_1']     = '1';
+        $session->additionalFields['collId0Institute_1']  = '1';
+        $session->additionalFields['Institute']           = '1';
+        $session->additionalFields['Series']              = '1';
 
         $data = [
-            'PersonSubmitterFirstName_1' => '',
-            'PersonSubmitterLastName_1' => '',
-            'PersonSubmitterEmail_1' => '',
-            'TitleMain_1' => '',
-            'TitleMainLanguage_1' => '',
-            'TitleAbstract_1' => '',
-            'TitleAbstractLanguage_1' => '',
-            'PersonAuthorFirstName_1' => '',
-            'PersonAuthorLastName_1' => '',
-            'PersonAuthorAcademicTitle_1' => '',
-            'PersonAuthorEmail_1' => '',
+            'PersonSubmitterFirstName_1'      => '',
+            'PersonSubmitterLastName_1'       => '',
+            'PersonSubmitterEmail_1'          => '',
+            'TitleMain_1'                     => '',
+            'TitleMainLanguage_1'             => '',
+            'TitleAbstract_1'                 => '',
+            'TitleAbstractLanguage_1'         => '',
+            'PersonAuthorFirstName_1'         => '',
+            'PersonAuthorLastName_1'          => '',
+            'PersonAuthorAcademicTitle_1'     => '',
+            'PersonAuthorEmail_1'             => '',
             'PersonAuthorAllowEmailContact_1' => '0',
-            'PersonAuthorDateOfBirth_1' => '',
-            'PersonAuthorPlaceOfBirth_1' => '',
-            'CompletedYear' => '',
-            'CompletedDate' => '07.09.2011',
-            'PageNumber' => '',
-            'SubjectUncontrolled_1' => '',
-            'SubjectUncontrolledLanguage_1' => '',
-            'Institute_1' => '',
-            'IdentifierUrn' => '',
-            'Note' => '',
-            'Language' => 'deu',
-            'Licence' => '',
-            'SeriesNumber_1' => '',
-            'Series_1' => ''
-            // kein Button wurde gedrückt
+            'PersonAuthorDateOfBirth_1'       => '',
+            'PersonAuthorPlaceOfBirth_1'      => '',
+            'CompletedYear'                   => '',
+            'CompletedDate'                   => '07.09.2011',
+            'PageNumber'                      => '',
+            'SubjectUncontrolled_1'           => '',
+            'SubjectUncontrolledLanguage_1'   => '',
+            'Institute_1'                     => '',
+            'IdentifierUrn'                   => '',
+            'Note'                            => '',
+            'Language'                        => 'deu',
+            'Licence'                         => '',
+            'SeriesNumber_1'                  => '',
+            'Series_1'                        => '',
+            // kein Button wurde gedrueckt
         ];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost($data);
         $this->dispatch('/publish/form/check');
@@ -812,23 +827,23 @@ class Publish_FormControllerTest extends ControllerTestCase
     {
         $doc = $this->createTemporaryDoc();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'preprint';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'preprint';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'PersonSubmitterLastName_1' => 'Doe',
-                'PersonSubmitterEmail_1' => 'doe@example.org',
-                'TitleMain_1' => 'Entenhausen',
-                'PersonAuthorLastName_1' => 'AuthorLastName',
-                'CompletedDate' => '22.01.2011',
-                'Language' => 'deu',
-                'Licence' => '4',
-                'send' => 'Weiter zum nächsten Schritt'
+                'PersonSubmitterEmail_1'    => 'doe@example.org',
+                'TitleMain_1'               => 'Entenhausen',
+                'PersonAuthorLastName_1'    => 'AuthorLastName',
+                'CompletedDate'             => '22.01.2011',
+                'Language'                  => 'deu',
+                'Licence'                   => '4',
+                'send'                      => 'Weiter zum nächsten Schritt',
             ]);
 
         $this->dispatch('/publish/form/check');
@@ -845,25 +860,25 @@ class Publish_FormControllerTest extends ControllerTestCase
     {
         $doc = $this->createTemporaryDoc();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'preprint';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'preprint';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'PersonSubmitterLastName_1' => 'Doe',
-                'PersonSubmitterEmail_1' => 'doe@example.org',
-                'TitleMain_1' => 'Entenhausen',
-                'TitleMainLanguage_1' => 'deu',
-                'TitleAbstract_1' => 'Foo',
-                'PersonAuthorLastName_1' => 'AuthorLastName',
-                'CompletedDate' => '22.01.2011',
-                'Language' => 'deu',
-                'Licence' => '4',
-                'send' => 'Weiter zum nächsten Schritt'
+                'PersonSubmitterEmail_1'    => 'doe@example.org',
+                'TitleMain_1'               => 'Entenhausen',
+                'TitleMainLanguage_1'       => 'deu',
+                'TitleAbstract_1'           => 'Foo',
+                'PersonAuthorLastName_1'    => 'AuthorLastName',
+                'CompletedDate'             => '22.01.2011',
+                'Language'                  => 'deu',
+                'Licence'                   => '4',
+                'send'                      => 'Weiter zum nächsten Schritt',
             ]);
 
         $this->dispatch('/publish/form/check');
@@ -879,25 +894,25 @@ class Publish_FormControllerTest extends ControllerTestCase
     {
         $doc = $this->createTemporaryDoc();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'all';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'all';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'PersonSubmitterLastName_1' => 'Doe',
-                'PersonSubmitterEmail_1' => 'doe@example.org',
-                'TitleMain_1' => 'Entenhausen',
-                'TitleMainLanguage_1' => 'deu',
-                'TitleParent_1' => 'Foo',
-                'PersonAuthorLastName_1' => 'AuthorLastName',
-                'CompletedDate' => '22.01.2011',
-                'Language' => 'deu',
-                'Licence' => '4',
-                'send' => 'Weiter zum nächsten Schritt'
+                'PersonSubmitterEmail_1'    => 'doe@example.org',
+                'TitleMain_1'               => 'Entenhausen',
+                'TitleMainLanguage_1'       => 'deu',
+                'TitleParent_1'             => 'Foo',
+                'PersonAuthorLastName_1'    => 'AuthorLastName',
+                'CompletedDate'             => '22.01.2011',
+                'Language'                  => 'deu',
+                'Licence'                   => '4',
+                'send'                      => 'Weiter zum nächsten Schritt',
             ]);
 
         $this->dispatch('/publish/form/check');
@@ -909,25 +924,25 @@ class Publish_FormControllerTest extends ControllerTestCase
     {
         $doc = $this->createTemporaryDoc();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'all';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'all';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'PersonSubmitterLastName_1' => 'Doe',
-                'PersonSubmitterEmail_1' => 'doe@example.org',
-                'TitleMain_1' => 'Entenhausen',
-                'TitleMainLanguage_1' => 'deu',
-                'TitleSub_1' => 'Foo',
-                'PersonAuthorLastName_1' => 'AuthorLastName',
-                'CompletedDate' => '22.01.2011',
-                'Language' => 'deu',
-                'Licence' => '4',
-                'send' => 'Weiter zum nächsten Schritt'
+                'PersonSubmitterEmail_1'    => 'doe@example.org',
+                'TitleMain_1'               => 'Entenhausen',
+                'TitleMainLanguage_1'       => 'deu',
+                'TitleSub_1'                => 'Foo',
+                'PersonAuthorLastName_1'    => 'AuthorLastName',
+                'CompletedDate'             => '22.01.2011',
+                'Language'                  => 'deu',
+                'Licence'                   => '4',
+                'send'                      => 'Weiter zum nächsten Schritt',
             ]);
 
         $this->dispatch('/publish/form/check');
@@ -939,25 +954,25 @@ class Publish_FormControllerTest extends ControllerTestCase
     {
         $doc = $this->createTemporaryDoc();
 
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'all';
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'all';
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
                 'PersonSubmitterLastName_1' => 'Doe',
-                'PersonSubmitterEmail_1' => 'doe@example.org',
-                'TitleMain_1' => 'Entenhausen',
-                'TitleMainLanguage_1' => 'deu',
-                'TitleAdditional_1' => 'Foo',
-                'PersonAuthorLastName_1' => 'AuthorLastName',
-                'CompletedDate' => '22.01.2011',
-                'Language' => 'deu',
-                'Licence' => '4',
-                'send' => 'Weiter zum nächsten Schritt'
+                'PersonSubmitterEmail_1'    => 'doe@example.org',
+                'TitleMain_1'               => 'Entenhausen',
+                'TitleMainLanguage_1'       => 'deu',
+                'TitleAdditional_1'         => 'Foo',
+                'PersonAuthorLastName_1'    => 'AuthorLastName',
+                'CompletedDate'             => '22.01.2011',
+                'Language'                  => 'deu',
+                'Licence'                   => '4',
+                'send'                      => 'Weiter zum nächsten Schritt',
             ]);
 
         $this->dispatch('/publish/form/check');
@@ -967,15 +982,15 @@ class Publish_FormControllerTest extends ControllerTestCase
 
     public function testBarfooTemplateIsRenderedForDoctypeFoobar()
     {
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'foobar';
-        $doc = $this->createTemporaryDoc();
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'foobar';
+        $doc                       = $this->createTemporaryDoc();
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
         $session->additionalFields = [];
 
-        $this->request->setMethod('POST');
-        $this->request->setPost(['browseUpInstitute' => 'ignore']);
+        $this->getRequest()->setMethod('POST');
+        $this->getRequest()->setPost(['browseUpInstitute' => 'ignore']);
 
         $this->dispatch('/publish/form/check');
 
@@ -986,14 +1001,14 @@ class Publish_FormControllerTest extends ControllerTestCase
 
     public function testApplicationErrorForDoctypeBarbaz()
     {
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'barbaz';
-        $doc = $this->createTemporaryDoc();
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
-        $session->additionalFields = ['browseUpInstitute' => 'hoch',];
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'barbaz';
+        $doc                       = $this->createTemporaryDoc();
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
+        $session->additionalFields = ['browseUpInstitute' => 'hoch'];
 
-        $this->request->setMethod('POST');
+        $this->getRequest()->setMethod('POST');
 
         $this->dispatch('/publish/form/check');
 
@@ -1004,14 +1019,14 @@ class Publish_FormControllerTest extends ControllerTestCase
 
     public function testApplicationErrorForDoctypeBazbar()
     {
-        $session = new Zend_Session_Namespace('Publish');
-        $session->documentType = 'bazbar';
-        $doc = $this->createTemporaryDoc();
-        $session->documentId = $doc->getId();
-        $session->fulltext = '0';
-        $session->additionalFields = ['browseUpInstitute' => 'hoch',];
+        $session                   = new Zend_Session_Namespace('Publish');
+        $session->documentType     = 'bazbar';
+        $doc                       = $this->createTemporaryDoc();
+        $session->documentId       = $doc->getId();
+        $session->fulltext         = '0';
+        $session->additionalFields = ['browseUpInstitute' => 'hoch'];
 
-        $this->request->setMethod('POST');
+        $this->getRequest()->setMethod('POST');
 
         $this->dispatch('/publish/form/check');
 

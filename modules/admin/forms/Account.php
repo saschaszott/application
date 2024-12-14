@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,13 +25,13 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Module_Admin
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2010, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
- * @version     $Id$
  */
+
+use Opus\Common\Account;
+use Opus\Common\AccountInterface;
+use Opus\Common\Model\NotFoundException;
 
 /**
  * Account administration form.
@@ -41,38 +42,35 @@
  */
 class Admin_Form_Account extends Application_Form_Model_Abstract
 {
+    public const ELEMENT_LOGIN            = 'username';
+    public const ELEMENT_FIRST_NAME       = 'firstname';
+    public const ELEMENT_LAST_NAME        = 'lastname';
+    public const ELEMENT_EMAIL            = 'email';
+    public const ELEMENT_PASSWORD         = 'password';
+    public const ELEMENT_PASSWORD_CONFIRM = 'confirmPassword';
 
-    const ELEMENT_LOGIN = 'username';
-    const ELEMENT_FIRST_NAME = 'firstname';
-    const ELEMENT_LAST_NAME = 'lastname';
-    const ELEMENT_EMAIL = 'email';
-    const ELEMENT_PASSWORD = 'password';
-    const ELEMENT_PASSWORD_CONFIRM = 'confirmPassword';
+    public const SUBFORM_ROLES = 'roles';
 
-    const SUBFORM_ROLES = 'roles';
+    public const MODE_NEW  = 'new';
+    public const MODE_EDIT = 'edit';
 
-    const MODE_NEW = 'new';
-    const MODE_EDIT = 'edit';
-
-    /**
-     * Mode modifies validation depending on if an account is being created or edited.
-     * @var string
-     */
+    /** @var string Mode modifies validation depending on if an account is being created or edited. */
     private $mode;
 
     /**
-     * Constructs empty form or populates it with values from Opus_Account($id).
-     * @param mixed $id
+     * Constructs empty form or populates it with values from Account($id).
+     *
+     * @param int|null $id TODO BUG int should not be null
      */
     public function __construct($id = null)
     {
         // TODO cannot call setMode() here because it access elements created later in init()
-        $this->mode = (empty($id)) ? self::MODE_NEW : self::MODE_EDIT;
+        $this->mode = empty($id) ? self::MODE_NEW : self::MODE_EDIT;
 
         parent::__construct();
 
         if ($this->getMode() === self::MODE_EDIT) {
-            $account = new Opus_Account($id);
+            $account = Account::get($id);
             $this->populateFromModel($account);
         }
 
@@ -88,7 +86,7 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
 
         $this->setLabelPrefix('admin_account_label_');
         $this->setUseNameAsLabel(true);
-        $this->setModelClass('Opus_Account');
+        $this->setModelClass(Account::class);
 
         $this->addElement('login', self::ELEMENT_LOGIN);
 
@@ -105,7 +103,7 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
         $this->addElement('password', self::ELEMENT_PASSWORD_CONFIRM);
 
         // add password validator
-        $confirmPassword = $this->getElement(self::ELEMENT_PASSWORD_CONFIRM);
+        $confirmPassword   = $this->getElement(self::ELEMENT_PASSWORD_CONFIRM);
         $passwordValidator = new Application_Form_Validate_Password();
         $confirmPassword->setValidators([$passwordValidator]);
 
@@ -115,13 +113,14 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
     }
 
     /**
-     * Populate the form values from Opus_Account instance.
-     * @param <type> $account
+     * Populate the form values from Account instance.
+     *
+     * @param AccountInterface $account
      */
     public function populateFromModel($account)
     {
         $this->getElement(self::ELEMENT_MODEL_ID)->setValue($account->getId());
-        $this->getElement(self::ELEMENT_LOGIN)->setValue(strtolower($account->getLogin()));
+        $this->getElement(self::ELEMENT_LOGIN)->setValue(strtolower($account->getLogin() ?? ''));
         $this->getElement(self::ELEMENT_FIRST_NAME)->setValue($account->getFirstName());
         $this->getElement(self::ELEMENT_LAST_NAME)->setValue($account->getLastName());
         $this->getElement(self::ELEMENT_EMAIL)->setValue($account->getEmail());
@@ -133,11 +132,14 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
         // current user cannot remode administrator permission
         // TODO does it make sense?
         $adminRoleElement = $rolesForm->getElement('administrator');
-        if (Zend_Auth::getInstance()->getIdentity() === strtolower($account->getLogin())) {
+        if (Zend_Auth::getInstance()->getIdentity() === strtolower($account->getLogin() ?? '')) {
             $adminRoleElement->setAttrib('disabled', true);
         }
     }
 
+    /**
+     * @param AccountInterface $account
+     */
     public function updateModel($account)
     {
         $logout = false;
@@ -166,11 +168,17 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
         }
     }
 
+    /**
+     * @return string
+     */
     public function getMode()
     {
         return $this->mode;
     }
 
+    /**
+     * @param string $mode
+     */
     public function setMode($mode)
     {
         $this->mode = $mode;
@@ -190,6 +198,12 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
         }
     }
 
+    /**
+     * @param array $values
+     * @return bool
+     * @throws Zend_Form_Exception
+     * @throws NotFoundException
+     */
     public function isValid($values)
     {
         if (isset($values[self::ELEMENT_MODEL_ID])) {
@@ -197,7 +211,7 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
 
             if (! empty($accountId)) {
                 $this->setMode(self::MODE_EDIT);
-                $account = new Opus_Account($accountId);
+                $account            = Account::get($accountId);
                 $values['oldLogin'] = $account->getLogin();
             }
         }
@@ -205,8 +219,10 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
         $passwordChanged = false;
 
         if (empty($values[self::ELEMENT_PASSWORD])) {
-            $values[self::ELEMENT_PASSWORD] = 'notchanged';
-            $values[self::ELEMENT_PASSWORD_CONFIRM] = 'notchanged';
+            if ($this->getMode() === self::MODE_EDIT) {
+                $values[self::ELEMENT_PASSWORD]         = 'notchanged';
+                $values[self::ELEMENT_PASSWORD_CONFIRM] = 'notchanged';
+            }
         } else {
             $passwordChanged = true;
         }
@@ -221,12 +237,16 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
         return $result;
     }
 
+    /**
+     * @return bool
+     * @throws NotFoundException
+     */
     public function isLoginChanged()
     {
         $accountId = $this->getElementValue(self::ELEMENT_MODEL_ID);
 
         if (! empty($accountId)) {
-            $account = new Opus_Account($accountId);
+            $account  = Account::get($accountId);
             $oldLogin = $account->getLogin();
         } else {
             $oldLogin = null;
@@ -235,6 +255,10 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
         return $oldLogin !== $this->getElementValue(self::ELEMENT_LOGIN);
     }
 
+    /**
+     * @return bool
+     * @throws NotFoundException
+     */
     public function isCurrentUser()
     {
         $currentUser = Zend_Auth::getInstance()->getIdentity();
@@ -242,7 +266,7 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
         $accountId = $this->getElementValue(self::ELEMENT_MODEL_ID);
 
         if (! empty($accountId)) {
-            $account = new Opus_Account($accountId);
+            $account  = Account::get($accountId);
             $oldLogin = $account->getLogin();
         } else {
             $oldLogin = null;
@@ -251,14 +275,20 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
         return $currentUser === $oldLogin;
     }
 
+    /**
+     * @return bool
+     */
     public function isPasswordChanged()
     {
         return ! empty($this->getElementValue(self::ELEMENT_PASSWORD));
     }
 
+    /**
+     * @return $this
+     */
     public function populate(array $values)
     {
-        $result = parent::populate($values);
+        parent::populate($values);
 
         $accountId = $this->getElement(self::ELEMENT_MODEL_ID);
 
@@ -268,7 +298,7 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
             $this->setMode(self::MODE_NEW);
         }
 
-        return $result;
+        return $this;
     }
 
     /*
@@ -278,7 +308,7 @@ class Admin_Form_Account extends Application_Form_Model_Abstract
 
 
             if (!$hasAdministratorRole && $isCurrentUser) {
-                $newRoles[] = Opus_UserRole::fetchByName('administrator');
+                $newRoles[] = UserRole::fetchByName('administrator');
             }
 
             $account->setRole($newRoles);

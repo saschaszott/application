@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -25,44 +25,47 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @author      Michael Lang <lang@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Account;
+use Opus\Common\AccountInterface;
+use Opus\Common\UserRole;
+
 class RefereeTest extends ControllerTestCase
 {
+    /** @var string[] */
+    protected $additionalResources = ['database', 'view', 'mainMenu', 'navigation', 'translation'];
 
-    protected $additionalResources = ['authz', 'database', 'view', 'mainMenu', 'navigation', 'translation'];
+    /** @var AccountInterface */
+    private $refereeAccount;
 
-    private $_refereeAccount;
-
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
-        $userRole = Opus_UserRole::fetchByName('reviewer');
+        $userRole = UserRole::fetchByName('reviewer');
 
-        $account = new Opus_Account();
+        $account = Account::new();
         $account->setLogin('referee');
         $account->setPassword('refereereferee');
         $account->setRole([$userRole]);
         $account->store();
 
-        $this->_refereeAccount = $account;
+        $this->refereeAccount = $account;
 
         $this->enableSecurity();
         $this->loginUser('referee', 'refereereferee');
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         $this->logoutUser();
         $this->restoreSecuritySetting();
 
-        if (! is_null($this->_refereeAccount)) {
-            $this->_refereeAccount->delete();
+        if ($this->refereeAccount !== null) {
+            $this->refereeAccount->delete();
         }
 
         parent::tearDown();

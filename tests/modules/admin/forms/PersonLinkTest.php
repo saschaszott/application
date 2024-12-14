@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,18 +25,20 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2013-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2013, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Document;
+use Opus\Common\Person;
+use Opus\Model\Dependent\Link\DocumentPerson;
+
 /**
- * Unit Tests für Formular das Opus_Model_Dependent_Link_DocumentPerson Objekte anzeigt.
+ * Unit Tests für Formular das DocumentPerson Objekte anzeigt.
  */
 class Admin_Form_PersonLinkTest extends ControllerTestCase
 {
-
+    /** @var string */
     protected $additionalResources = 'database';
 
     public function testConstructForm()
@@ -56,9 +59,9 @@ class Admin_Form_PersonLinkTest extends ControllerTestCase
     {
         $form = new Admin_Form_PersonLink();
 
-        $model = new Opus_Model_Dependent_Link_DocumentPerson();
+        $model = new DocumentPerson();
 
-        $person = new Opus_Person(310); // von Testdokument 250 (Personensortierung)
+        $person = Person::get(310); // von Testdokument 250 (Personensortierung)
 
         $model->setModel($person);
         $model->setSortOrder(5);
@@ -94,8 +97,8 @@ class Admin_Form_PersonLinkTest extends ControllerTestCase
 
         $this->assertNull($form->getModel());
 
-        $document = new Opus_Document(250);
-        $authors = $document->getPersonAuthor();
+        $document = Document::get(250);
+        $authors  = $document->getPersonAuthor();
 
         $this->assertEquals(3, count($authors));
         $form->populateFromModel($authors[0]);
@@ -109,7 +112,7 @@ class Admin_Form_PersonLinkTest extends ControllerTestCase
 
         $post = [
             'PersonId' => '', // Personen ID muss vorhanden sein
-            'Role' => '' // Rolle muss vorhanden sein
+            'Role'     => '', // Rolle muss vorhanden sein
         ];
 
         $this->assertFalse($form->isValid($post));
@@ -126,7 +129,7 @@ class Admin_Form_PersonLinkTest extends ControllerTestCase
 
         $post = [
             'PersonId' => 'tom', // keine ID
-            'Role' => 'unknown' // das ist keine erlaubte Rolle
+            'Role'     => 'unknown', // das ist keine erlaubte Rolle
         ];
 
         $this->assertFalse($form->isValid($post));
@@ -144,7 +147,7 @@ class Admin_Form_PersonLinkTest extends ControllerTestCase
 
         $post = [
             'PersonId' => '310', // Personen ID muss vorhanden sein
-            'Role' => 'author' // Rolle muss vorhanden sein
+            'Role'     => 'author', // Rolle muss vorhanden sein
         ];
 
         $this->assertTrue($form->isValid($post));
@@ -158,7 +161,7 @@ class Admin_Form_PersonLinkTest extends ControllerTestCase
         $form->getElement('SortOrder')->setValue(6);
         $form->getElement('AllowContact')->setChecked(true);
 
-        $model = new Opus_Model_Dependent_Link_DocumentPerson();
+        $model = new DocumentPerson();
 
         $form->updateModel($model);
 

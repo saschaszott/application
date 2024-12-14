@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,16 +25,14 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @package     Form_Element
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Search\Util\Query;
+
 class Application_Form_Element_SearchFieldModifierTest extends ControllerTestCase
 {
-
     public function testOptions()
     {
         $element = new Application_Form_Element_SearchFieldModifier('modifier');
@@ -42,18 +41,18 @@ class Application_Form_Element_SearchFieldModifierTest extends ControllerTestCas
 
         $this->assertCount(3, $options);
 
-        $this->assertNotNull($element->getMultiOption(Opus\Search\Util\Query::SEARCH_MODIFIER_CONTAINS_ALL));
-        $this->assertNotNull($element->getMultiOption(Opus\Search\Util\Query::SEARCH_MODIFIER_CONTAINS_ANY));
-        $this->assertNotNull($element->getMultiOption(Opus\Search\Util\Query::SEARCH_MODIFIER_CONTAINS_NONE));
+        $this->assertNotNull($element->getMultiOption(Query::SEARCH_MODIFIER_CONTAINS_ALL));
+        $this->assertNotNull($element->getMultiOption(Query::SEARCH_MODIFIER_CONTAINS_ANY));
+        $this->assertNotNull($element->getMultiOption(Query::SEARCH_MODIFIER_CONTAINS_NONE));
     }
 
     public function testValidationTrue()
     {
         $element = new Application_Form_Element_SearchFieldModifier('modifier');
 
-        $this->assertTrue($element->isValid(Opus\Search\Util\Query::SEARCH_MODIFIER_CONTAINS_ALL));
-        $this->assertTrue($element->isValid(Opus\Search\Util\Query::SEARCH_MODIFIER_CONTAINS_ANY));
-        $this->assertTrue($element->isValid(Opus\Search\Util\Query::SEARCH_MODIFIER_CONTAINS_NONE));
+        $this->assertTrue($element->isValid(Query::SEARCH_MODIFIER_CONTAINS_ALL));
+        $this->assertTrue($element->isValid(Query::SEARCH_MODIFIER_CONTAINS_ANY));
+        $this->assertTrue($element->isValid(Query::SEARCH_MODIFIER_CONTAINS_NONE));
     }
 
     public function testValidationFalse()

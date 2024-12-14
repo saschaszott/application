@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,33 +25,29 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @package     View_Helper
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
-/**
- * Class BreadcrumbsTest.
- *
- */
 class Application_View_Helper_BreadcrumbsTest extends ControllerTestCase
 {
+    /** @var string[] */
+    protected $additionalResources = ['view', 'mainMenu', 'navigation', 'translation'];
 
-    protected $additionalResources = ['authz', 'view', 'mainMenu', 'navigation', 'translation'];
+    /** @var Zend_Navigation_Page */
+    private $page;
 
-    private $page = null;
+    /** @var Application_View_Helper_Breadcrumbs */
+    private $breadcrumbs;
 
-    private $breadcrumbs = null;
+    /** @var Zend_View */
+    private $view;
 
-    private $view = null;
-
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
-        $this->view = Zend_Registry::get('Opus_View');
+        $this->view = $this->getView();
 
         $this->breadcrumbs = $this->view->breadcrumbs();
 
@@ -58,10 +55,6 @@ class Application_View_Helper_BreadcrumbsTest extends ControllerTestCase
         $this->page = $navigation->findOneByLabel('admin_title_documents');
     }
 
-    /**
-     * TODO without 'authz' resource this test fails - however not like something is missing - authz seems to carry
-     *      over between tests
-     */
     public function testHelpLinkPresent()
     {
         $this->page->helpUrl = 'http://opus4.kobv.de';

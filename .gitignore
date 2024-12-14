@@ -7,10 +7,12 @@ db/schema
 
 # ignore any third-party library
 vendor
+.vagrant
 
 # ignore composer runtime
 composer.phar
 composer.lock
+bin/composer
 
 # ignore all workspace files
 workspace/**/*
@@ -42,3 +44,5 @@ opus4-solr-jetty.conf
 out
 *.iml
 nbproject
+/tests/.phpunit.result.cache
+/testresult-term.txt

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -23,20 +24,19 @@
  * details. You should have received a copy of the GNU General Public License
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
+ * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Document;
 
 /**
  * Unit Tests fuer Unterformular, das Dateien in FileManager auflistet.
- *
- * @category    Application Unit Test
- * @package     Admin_Form
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
- * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 class Admin_Form_FilesTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['view', 'translation'];
 
     public function testConstructForm()
@@ -63,7 +63,7 @@ class Admin_Form_FilesTest extends ControllerTestCase
         $form = new Admin_Form_Files();
 
         $post = [
-            'Add' => 'Upload'
+            'Add' => 'Upload',
         ];
 
         $result = $form->processPost($post, null);
@@ -71,10 +71,10 @@ class Admin_Form_FilesTest extends ControllerTestCase
         $this->assertEquals([
             'result' => 'switch',
             'target' => [
-                'module' => 'admin',
+                'module'     => 'admin',
                 'controller' => 'filemanager',
-                'action' => 'upload'
-            ]
+                'action'     => 'upload',
+            ],
         ], $result);
     }
 
@@ -86,9 +86,9 @@ class Admin_Form_FilesTest extends ControllerTestCase
 
         $post = [
             'File0' => [
-                'Id' => '5555',
-                'Remove' => 'Entfernen'
-            ]
+                'Id'     => '5555',
+                'Remove' => 'Entfernen',
+            ],
         ];
 
         $result = $form->processPost($post, null);
@@ -96,11 +96,11 @@ class Admin_Form_FilesTest extends ControllerTestCase
         $this->assertEquals([
             'result' => 'switch',
             'target' => [
-                'module' => 'admin',
+                'module'     => 'admin',
                 'controller' => 'filemanager',
-                'action' => 'delete',
-                'fileId' => '5555'
-            ]
+                'action'     => 'delete',
+                'fileId'     => '5555',
+            ],
         ], $result);
     }
 
@@ -109,7 +109,7 @@ class Admin_Form_FilesTest extends ControllerTestCase
         $form = new Admin_Form_Files();
 
         $post = [
-            'Import' => 'Import'
+            'Import' => 'Import',
         ];
 
         $result = $form->processPost($post, null);
@@ -117,10 +117,10 @@ class Admin_Form_FilesTest extends ControllerTestCase
         $this->assertEquals([
             'result' => 'switch',
             'target' => [
-                'module' => 'admin',
+                'module'     => 'admin',
                 'controller' => 'filebrowser',
-                'action' => 'index'
-            ]
+                'action'     => 'index',
+            ],
         ], $result);
     }
 
@@ -128,7 +128,7 @@ class Admin_Form_FilesTest extends ControllerTestCase
     {
         $form = new Admin_Form_Files();
 
-        $document = new Opus_Document(91);
+        $document = Document::get(91);
 
         $form->populateFromModel($document);
 
@@ -141,7 +141,7 @@ class Admin_Form_FilesTest extends ControllerTestCase
     {
         $form = new Admin_Form_Files();
 
-        $document = new Opus_Document(91);
+        $document = Document::get(91);
 
         $form->populateFromModel($document);
 
@@ -161,7 +161,7 @@ class Admin_Form_FilesTest extends ControllerTestCase
     {
         $form = new Admin_Form_Files();
 
-        $document = new Opus_Document(91);
+        $document = Document::get(91);
 
         $form->populateFromModel($document);
 
@@ -174,12 +174,12 @@ class Admin_Form_FilesTest extends ControllerTestCase
 
         $post = [
             'File0' => [
-                'Id' => '116'
+                'Id' => '116',
             ],
             'File1' => [
-                'Id' => '127',
-                'Comment' => 'Testkommentar'
-            ]
+                'Id'      => '127',
+                'Comment' => 'Testkommentar',
+            ],
         ];
 
         $form->continueEdit($request, $post);
@@ -194,7 +194,7 @@ class Admin_Form_FilesTest extends ControllerTestCase
     {
         $form = new Admin_Form_Files();
 
-        $document = new Opus_Document(91);
+        $document = Document::get(91);
 
         $form->populateFromModel($document);
 
@@ -212,7 +212,7 @@ class Admin_Form_FilesTest extends ControllerTestCase
     {
         $form = new Admin_Form_Files();
 
-        $document = new Opus_Document(155);
+        $document = Document::get(155);
 
         $form->populateFromModel($document);
 
@@ -236,7 +236,7 @@ class Admin_Form_FilesTest extends ControllerTestCase
     {
         $form = new Admin_Form_Files();
 
-        $document = new Opus_Document(155);
+        $document = Document::get(155);
 
         $files = $document->getFile();
 

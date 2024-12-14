@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,100 +25,102 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Tests
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
 class Rss_Model_FeedTest extends ControllerTestCase
 {
-
+    /** @var bool */
     protected $configModifiable = true;
 
+    /** @var string[] */
     protected $additionalResources = ['view'];
 
-    private $_model;
+    /** @var Rss_Model_Feed */
+    private $model;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
-        $view = Zend_Registry::get('Opus_View');
+        $view = $this->getView();
 
-        $this->_model = new Rss_Model_Feed($view);
+        $this->model = new Rss_Model_Feed($view);
     }
 
     public function testGetTitle()
     {
-        $view = Zend_Registry::get('Opus_View');
+        $view = $this->getView();
         Zend_Controller_Front::getInstance()->setBaseUrl('/opus4test');
         $model = new Rss_Model_Feed($view);
 
         $this->assertEquals('http:///opus4test', $model->getTitle());
 
-        $config = Zend_Registry::get('Zend_Config');
+        $this->adjustConfiguration([
+            'rss' => ['default' => ['feedTitle' => 'OPUS 4 Test']],
+        ]);
 
-        $config->merge(new Zend_Config([
-            'rss' => ['default' => ['feedTitle' => 'OPUS 4 Test']]
-        ]));
+        $model->setConfig(null); // reset local reference to configuration
+
         $this->assertEquals('OPUS 4 Test', $model->getTitle());
     }
 
     public function testGetTitleWithName()
     {
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config([
-            'rss' => ['default' => ['feedTitle' => '%1$s']]
-        ]));
-        $this->assertEquals('OPUS 4', $this->_model->getTitle());
+        $this->adjustConfiguration([
+            'rss' => ['default' => ['feedTitle' => '%1$s']],
+        ]);
+        $this->assertEquals('OPUS 4', $this->model->getTitle());
     }
 
     public function testGetTitleWithFullUrl()
     {
-        $view = Zend_Registry::get('Opus_View');
+        $view = $this->getView();
         Zend_Controller_Front::getInstance()->setBaseUrl('/opus4test');
         $model = new Rss_Model_Feed($view);
 
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config([
-            'rss' => ['default' => ['feedTitle' => '%4$s']]
-        ]));
-        $this->assertEquals('http:///opus4test', $this->_model->getTitle());
+        $this->adjustConfiguration([
+            'rss' => ['default' => ['feedTitle' => '%4$s']],
+        ]);
+        $this->assertEquals('http:///opus4test', $this->model->getTitle());
     }
 
     public function testGetTitleWithBaseUrl()
     {
-        $view = Zend_Registry::get('Opus_View');
+        $view = $this->getView();
         Zend_Controller_Front::getInstance()->setBaseUrl('/opus4test');
         $model = new Rss_Model_Feed($view);
 
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config([
-            'rss' => ['default' => ['feedTitle' => '%3$s']]
-        ]));
+        $this->adjustConfiguration([
+            'rss' => ['default' => ['feedTitle' => '%3$s']],
+        ]);
         $this->assertEquals('opus4test', $model->getTitle());
     }
 
     public function testGetTitleWithHost()
     {
-        $view = Zend_Registry::get('Opus_View');
+        $view = $this->getView();
         Zend_Controller_Front::getInstance()->setBaseUrl('/opus4test');
         $view->getHelper('ServerUrl')->setHost('testhost');
         $model = new Rss_Model_Feed($view);
 
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config([
-            'rss' => ['default' => ['feedTitle' => '%2$s']]
-        ]));
+        $this->adjustConfiguration([
+            'rss' => ['default' => ['feedTitle' => '%2$s']],
+        ]);
         $this->assertEquals('testhost', $model->getTitle());
     }
 
     public function testGetDescription()
     {
-        $this->assertEquals('OPUS documents', $this->_model->getDescription());
+        $this->assertEquals('OPUS documents', $this->model->getDescription());
 
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config([
-            'rss' => ['default' => ['feedDescription' => 'Test description.']]
-        ]));
+        $this->adjustConfiguration([
+            'rss' => ['default' => ['feedDescription' => 'Test description.']],
+        ]);
 
-        $this->assertEquals('Test description.', $this->_model->getDescription());
+        $this->model->setConfig(null); // reset local reference to configuration
+
+        $this->assertEquals('Test description.', $this->model->getDescription());
     }
 }

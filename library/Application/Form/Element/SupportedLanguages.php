@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,19 +25,12 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Form_Element
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2016, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
-/**
- * Class Application_Form_Element_SupportedLanguages
- */
 class Application_Form_Element_SupportedLanguages extends Application_Form_Element_MultiCheckbox
 {
-
     /**
      * @throws Zend_Form_Exception
      */
@@ -59,30 +53,34 @@ class Application_Form_Element_SupportedLanguages extends Application_Form_Eleme
             true,
             [
                 'messages' => [
-                    Zend_Validate_InArray::NOT_IN_ARRAY => 'validation_error_language_not_supported'
+                    Zend_Validate_InArray::NOT_IN_ARRAY => 'validation_error_language_not_supported',
                 ],
-                'haystack' => array_keys($options)
+                'haystack' => array_keys($options),
             ]
         );
 
         $this->setAllowEmpty(false); // there must be a value
     }
 
-    /**
-     *
-     */
     public function loadDefaultDecorators()
     {
-        if (! $this->loadDefaultDecoratorsIsDisabled() && count($this->getDecorators()) == 0) {
+        if (! $this->loadDefaultDecoratorsIsDisabled() && count($this->getDecorators()) === 0) {
             $this->setDecorators(
                 [
                     'ViewHelper',
                     'Description',
                     'Errors',
                     'ElementHtmlTag',
-                    ['LabelNotEmpty', ['tag' => 'div', 'tagClass' => 'label', 'placement' => 'prepend',
-                        'disableFor' => true]],
-                    [['dataWrapper' => 'HtmlTagWithId'], ['tag' => 'div', 'class' => 'data-wrapper']]
+                    [
+                        'LabelNotEmpty',
+                        [
+                            'tag'        => 'div',
+                            'tagClass'   => 'label',
+                            'placement'  => 'prepend',
+                            'disableFor' => true,
+                        ],
+                    ],
+                    [['dataWrapper' => 'HtmlTagWithId'], ['tag' => 'div', 'class' => 'data-wrapper']],
                 ]
             );
         }
@@ -96,7 +94,7 @@ class Application_Form_Element_SupportedLanguages extends Application_Form_Eleme
      */
     public function getLanguageOptions()
     {
-        $translator = Zend_Registry::get('Zend_Translate');
+        $translator = Application_Translate::getInstance();
 
         $currentLocale = new Zend_Locale($translator->getLocale());
 
@@ -113,6 +111,7 @@ class Application_Form_Element_SupportedLanguages extends Application_Form_Eleme
 
     /**
      * Sets value from comma separated values or array.
+     *
      * @param mixed $value
      */
     public function setValue($value)

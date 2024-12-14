@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -25,19 +26,16 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Module_Admin
- * @author      Felix Ostrowski <ostrowski@hbz-nrw.de>
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Account;
+use Opus\Common\AccountInterface;
+use Opus\Common\UserRole;
+
 /**
  * Controller for administration of user accounts.
- *
- * @category    Application
- * @package     Module_Admin
  *
  * This controller allows creating, editing and removing user accounts.
  *
@@ -54,13 +52,15 @@
  */
 class Admin_AccountController extends Application_Controller_ActionCRUD
 {
-
     public function init()
     {
-        $this->setFormClass('Admin_Form_Account');
+        $this->setFormClass(Admin_Form_Account::class);
         parent::init();
     }
 
+    /**
+     * @return Application_Form_Model_Table
+     */
     public function getIndexForm()
     {
         $form = parent::getIndexForm();
@@ -70,16 +70,21 @@ class Admin_AccountController extends Application_Controller_ActionCRUD
 
     /**
      * Admin and current user account cannot be deleted.
-     * @param Object $account
+     *
+     * @param AccountInterface $account
      * @return bool
      */
     public function isDeletable($account)
     {
         $login = $account->getLogin();
 
-        return ((Zend_Auth::getInstance()->getIdentity() !== strtolower($login)) && ($login !== 'admin'));
+        return (Zend_Auth::getInstance()->getIdentity() !== strtolower($login)) && ($login !== 'admin');
     }
 
+    /**
+     * @param AccountInterface $model
+     * @return Application_Form_ModelFormInterface
+     */
     public function getEditModelForm($model)
     {
         $form = parent::getEditModelForm($model);
@@ -92,6 +97,8 @@ class Admin_AccountController extends Application_Controller_ActionCRUD
      *
      * TODO update look of page
      * TODO move code into model classes for easier testing
+     *
+     * @return AccountInterface // TODO BUG ???
      */
     public function showAction()
     {
@@ -108,17 +115,17 @@ class Admin_AccountController extends Application_Controller_ActionCRUD
 
         $this->view->allModules = $modules;
 
-        $account = new Opus_Account($id);
+        $account             = Account::get($id);
         $this->view->account = $account;
 
-        // Get all Opus_UserRoles for current Account *plus* 'guest'
+        // Get all UserRoles for current Account *plus* 'guest'
         $roles = [];
         foreach ($account->getRole() as $roleLinkModel) {
             $roles[] = $roleLinkModel->getModel();
         }
 
-        $guestRole = Opus_UserRole::fetchByName('guest');
-        if (! is_null($guestRole)) {
+        $guestRole = UserRole::fetchByName('guest');
+        if ($guestRole !== null) {
             $roles[] = $guestRole;
         }
 
@@ -129,7 +136,7 @@ class Admin_AccountController extends Application_Controller_ActionCRUD
         }
 
         foreach ($roles as $role) {
-            $roleName = $role->getName();
+            $roleName    = $role->getName();
             $roleModules = $role->listAccessModules();
 
             foreach ($roleModules as $module) {

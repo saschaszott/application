@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -25,35 +25,39 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Account;
+use Opus\Common\UserRole;
+
 class SeriesAdminTest extends ControllerTestCase
 {
-
+    /** @var bool */
     protected $configModifiable = true;
 
+    /** @var string[] */
     protected $additionalResources = ['database', 'translation', 'view', 'navigation', 'mainMenu'];
 
+    /** @var string */
     private $userName = 'seriesadminuser';
 
+    /** @var string */
     private $roleName = 'test-seriesadmin';
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
         $this->enableSecurity();
 
-        $userRole = new Opus_UserRole();
+        $userRole = UserRole::new();
         $userRole->setName($this->roleName);
         $userRole->appendAccessModule('admin');
         $userRole->appendAccessModule('resource_series');
         $userRole->store();
 
-        $user = new Opus_Account();
+        $user = Account::new();
         $user->setLogin($this->userName);
         $user->setPassword('seriesadminpwd');
         $user->addRole($userRole);
@@ -62,20 +66,19 @@ class SeriesAdminTest extends ControllerTestCase
         $this->loginUser($this->userName, 'seriesadminpwd');
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         $this->logoutUser();
         $this->restoreSecuritySetting();
 
-        $user = Opus_Account::fetchAccountByLogin($this->userName);
+        $user = Account::fetchAccountByLogin($this->userName);
         $user->delete();
 
-        $userRole = Opus_UserRole::fetchByName($this->roleName);
+        $userRole = UserRole::fetchByName($this->roleName);
         $userRole->delete();
 
         parent::tearDown();
     }
-
 
     /**
      * Regression Test für OPUSVIER-3306.

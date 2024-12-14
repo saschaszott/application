@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,26 +25,30 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Module_Admin
- * @author      Sascha Szott <szott@zib.de>
  * @copyright   Copyright (c) 2018, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Identifier;
+use Opus\Common\IdentifierInterface;
+use Opus\Common\Model\NotFoundException;
 
 /**
  * Anzeigefeld für den Registrierungsstatus von lokalen DOIs
  */
 class Admin_Form_Document_RegistrationNote extends Admin_Form_AbstractDocumentSubForm
 {
-
     /**
      * Name für Anzeigefeld, in dem der Registrierungsstatus von DOIs angezeigt
      */
-    const ELEMENT_REGISTRATION_NOTE = 'RegistrationNote';
+    public const ELEMENT_REGISTRATION_NOTE = 'RegistrationNote';
 
+    /** @var IdentifierInterface */
     private $identifier;
 
+    /**
+     * @return IdentifierInterface
+     */
     public function getIdentifier()
     {
         return $this->identifier;
@@ -57,21 +62,27 @@ class Admin_Form_Document_RegistrationNote extends Admin_Form_AbstractDocumentSu
         $this->addElement($statusNote);
     }
 
+    /**
+     * @param IdentifierInterface|int $model
+     * @throws Zend_Exception
+     */
     public function populateFromModel($model)
     {
         if (is_string($model) && is_numeric($model)) {
             // Identifier-ID übergeben
             try {
-                $model = new Opus_Identifier($model);
-            } catch (Opus_Model_NotFoundException $e) {
+                $model = Identifier::get($model);
+            } catch (NotFoundException $e) {
                 // ignore silently
                 return;
             }
         }
 
-        if (! ($model instanceof Opus_Identifier)) {
+        if (! $model instanceof IdentifierInterface) {
             return;
         }
+
+        // TODO BUG DOI specific function in generic Identifer class
         if (! $model->isLocalDoi()) {
             return; // Statusinformationen werden nur für lokale DOIs (gemäß der Konfiguration) angezeigt
         }
@@ -85,8 +96,8 @@ class Admin_Form_Document_RegistrationNote extends Admin_Form_AbstractDocumentSu
             [
                 [
                     'ViewScript',
-                    ['viewScript' => 'identifierStatus.phtml']
-                ]
+                    ['viewScript' => 'identifierStatus.phtml'],
+                ],
             ]
         );
     }
@@ -96,7 +107,7 @@ class Admin_Form_Document_RegistrationNote extends Admin_Form_AbstractDocumentSu
      */
     public function prepareRenderingAsView()
     {
-        if (is_null($this->identifier)) {
+        if ($this->identifier === null) {
             return; // es wird keine Information angezeigt
         }
 

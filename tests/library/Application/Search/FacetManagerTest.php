@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,22 +25,19 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @package     Application_Search
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2020, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
 class Application_Search_FacetManagerTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['translation'];
 
     public function testGetFacetConfig()
     {
         $manager = new Application_Search_FacetManager();
-        $config = $manager->getFacetConfig('doctype');
+        $config  = $manager->getFacetConfig('doctype');
 
         $this->assertEquals('1', $config->translated);
     }
@@ -98,9 +96,9 @@ class Application_Search_FacetManagerTest extends ControllerTestCase
 
     public function testGetFacetEnrichment()
     {
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config([
-            'searchengine' => ['solr' => ['facets' => 'enrichment_Audience']]
-        ]));
+        $this->adjustConfiguration([
+            'searchengine' => ['solr' => ['facets' => 'enrichment_Audience']],
+        ]);
 
         $manager = new Application_Search_FacetManager();
 
@@ -113,9 +111,9 @@ class Application_Search_FacetManagerTest extends ControllerTestCase
 
     public function testGetFacetEnrichmentTranslated()
     {
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config([
-            'searchengine' => ['solr' => ['facets' => 'enrichment_Audience']]
-        ]));
+        $this->adjustConfiguration([
+            'searchengine' => ['solr' => ['facets' => 'enrichment_Audience']],
+        ]);
 
         $manager = new Application_Search_FacetManager();
 
@@ -143,9 +141,9 @@ class Application_Search_FacetManagerTest extends ControllerTestCase
 
     public function testGetFacetConfigForFacetteWithDotInName()
     {
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config([
-            'search' => ['facet' => ['enrichment_opus-source' => ['heading' => 'EnrichmentOpusSource']]]
-        ]));
+        $this->adjustConfiguration([
+            'search' => ['facet' => ['enrichment_opus-source' => ['heading' => 'EnrichmentOpusSource']]],
+        ]);
 
         $manager = new Application_Search_FacetManager();
 
@@ -165,9 +163,9 @@ class Application_Search_FacetManagerTest extends ControllerTestCase
 
     public function testFacetSortCrit()
     {
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config([
-            'search' => ['facet' => ['subject' => ['sort' => 'lexi']]]
-        ]));
+        $this->adjustConfiguration([
+            'search' => ['facet' => ['subject' => ['sort' => 'lexi']]],
+        ]);
 
         $manager = new Application_Search_FacetManager();
 

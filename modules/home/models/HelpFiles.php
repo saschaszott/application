@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,12 +25,11 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Module_Home
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Log;
 
 /**
  * Model for encapsuling access to help files.
@@ -42,22 +42,24 @@
  */
 class Home_Model_HelpFiles extends Application_Translate_Help
 {
-
     /**
      * Stores help configuration after reading it for the first time.
+     *
      * @var array
      */
     private $helpConfig;
 
+    /** @var string */
     private $helpPath;
 
     /**
      * Returns the path to the help files.
+     *
      * @return string Path to help files
      */
     public function getHelpPath()
     {
-        if (is_null($this->helpPath)) {
+        if ($this->helpPath === null) {
             $this->helpPath = APPLICATION_PATH . '/application/configs/help/';
         }
 
@@ -66,27 +68,28 @@ class Home_Model_HelpFiles extends Application_Translate_Help
 
     /**
      * Returns the content of a help file.
-     * @param string $file File basename
-     * @return string Content of file
+     *
+     * @param string $key
+     * @return string|null Content of file
      */
     public function getContent($key)
     {
-        $translate = Zend_Registry::get('Zend_Translate');
+        $translate = Application_Translate::getInstance();
 
         $translationKey = "help_content_$key";
-        $translation = $translate->translate($translationKey);
+        $translation    = $translate->translate($translationKey);
 
         $pos = false;
 
         if ($this->getUseFiles()) {
-            $file = $key . '.' . $translate->getLocale() . '.txt';
+            $file               = $key . '.' . $translate->getLocale() . '.txt';
             $helpFilesAvailable = $this->getFiles();
-            $pos = array_search($file, $helpFilesAvailable);
+            $pos                = array_search($file, $helpFilesAvailable);
 
             // TODO fallback if function is called with complete file name - necessary? remove?
             if ($pos === false) {
                 $file = $key;
-                $pos = array_search($file, $helpFilesAvailable);
+                $pos  = array_search($file, $helpFilesAvailable);
             }
         }
 
@@ -106,32 +109,37 @@ class Home_Model_HelpFiles extends Application_Translate_Help
 
     /**
      * Returns available help files.
+     *
      * @return array Basenames of help files
      */
     public function getFiles()
     {
         $helpFilesAvailable = [];
-        $dir = new DirectoryIterator($this->getHelpPath());
+        $dir                = new DirectoryIterator($this->getHelpPath());
         foreach ($dir as $file) {
-            if ($file->isFile() && $file->getFilename() != '.' && $file->getFilename() != '..' && $file->isReadable()
-                && pathinfo($file->getFilename(), PATHINFO_EXTENSION) === 'txt') {
+            if (
+                $file->isFile() && $file->getFilename() !== '.' && $file->getFilename() !== '..' && $file->isReadable()
+                && pathinfo($file->getFilename(), PATHINFO_EXTENSION) === 'txt'
+            ) {
                 array_push($helpFilesAvailable, $file->getBasename());
             }
         }
         return $helpFilesAvailable;
     }
 
+    /**
+     * @return array
+     */
     public function getHelpEntries()
     {
         $config = $this->getHelpConfig();
 
-        $data = $config->toArray();
-
-        return $data;
+        return $config->toArray();
     }
 
     /**
      * Loads help configuration.
+     *
      * @return Zend_Config_Ini
      */
     private function getHelpConfig()
@@ -146,14 +154,14 @@ class Home_Model_HelpFiles extends Application_Translate_Help
                     $config = new Zend_Config_Ini($filePath);
                 } catch (Zend_Config_Exception $zce) {
                     // TODO einfachere Lösung?
-                    $logger = Zend_Registry::get('Zend_Log');
-                    if (! is_null($logger)) {
+                    $logger = Log::get();
+                    if ($logger !== null) {
                         $logger->err("could not load help configuration", $zce);
                     }
                 }
             }
 
-            if (is_null($config)) {
+            if ($config === null) {
                 $config = new Zend_Config([]);
             }
 
@@ -163,21 +171,31 @@ class Home_Model_HelpFiles extends Application_Translate_Help
         return $this->helpConfig;
     }
 
+    /**
+     * @return bool
+     */
     public function getUseFiles()
     {
         $config = $this->getConfig();
 
-        return (! isset($config->help->useFiles) || filter_var($config->help->useFiles, FILTER_VALIDATE_BOOLEAN));
+        return ! isset($config->help->useFiles) || filter_var($config->help->useFiles, FILTER_VALIDATE_BOOLEAN);
     }
 
+    /**
+     * @param string $path
+     */
     public function setHelpPath($path)
     {
         $this->helpPath = rtrim($path, '/') . '/';
     }
 
+    /**
+     * @param string $key
+     * @return bool
+     */
     public function isContentAvailable($key)
     {
-        $translate = Zend_Registry::get('Zend_Translate');
+        $translate = Application_Translate::getInstance();
 
         $translationKey = "help_content_$key";
 

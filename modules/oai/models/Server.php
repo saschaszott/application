@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,36 +25,40 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Oai_Modul
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2017, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Document;
+use Opus\Common\DocumentInterface;
+use Opus\Common\Log;
+use Opus\Common\Model\NotFoundException;
+use Opus\Common\Repository;
+use Opus\Model\Xml;
+use Opus\Model\Xml\Version1;
+
 class Oai_Model_Server extends Application_Model_Abstract
 {
-
     /**
      * Holds xml representation of document information to be processed.
      *
-     * @var DomDocument  Defaults to null.
+     * @var DOMDocument Defaults to null.
      */
-    protected $_xml = null;
+    protected $xml;
 
     /**
      * Holds the stylesheet for the transformation.
      *
-     * @var DomDocument  Defaults to null.
+     * @var DOMDocument Defaults to null.
      */
-    protected $_xslt = null;
+    protected $xslt;
 
     /**
      * Holds the xslt processor.
      *
-     * @var XSLTProcessor  Defaults to null.
+     * @var XSLTProcessor Defaults to null.
      */
-    protected $_proc = null;
+    protected $proc;
 
     /**
      * Holds information about which document state aka server_state
@@ -61,63 +66,74 @@ class Oai_Model_Server extends Application_Model_Abstract
      *
      * @var array
      */
-    private $_deliveringDocumentStates = ['published', 'deleted'];  // maybe deleted documents too
+    private $deliveringDocumentStates = ['published', 'deleted'];  // maybe deleted documents too
 
     /**
      * Holds restriction types for xMetaDiss
      *
      * @var array
      */
-    private $_xMetaDissRestriction = ['doctoralthesis', 'habilitation'];
+    private $xMetaDissRestriction = ['doctoralthesis', 'habilitation'];
 
     /**
      * Hold oai module configuration model.
      *
      * @var Oai_Model_Configuration
      */
-    protected $_configuration = null;
+    protected $configuration;
 
-    private $_xmlFactory = null;
+    /** @var Oai_Model_XmlFactory */
+    private $xmlFactory;
 
-    private $_scriptPath;
+    /** @var string */
+    private $scriptPath;
 
-    private $_baseUrl;
+    /** @var string */
+    private $baseUrl;
 
-    private $_baseUri;
+    /** @var string */
+    private $baseUri;
 
+    /** @var Zend_Controller_Response_Http */
     private $response; // TODO temporary hack
 
     /**
      * Gather configuration before action handling.
-     *
-     * @return void
      */
     public function init()
     {
         $config = $this->getConfig();
 
-        $this->_xml = new DomDocument;
-        $this->_proc = new XSLTProcessor;
-        $this->_configuration = new Oai_Model_Configuration($config);
-        $this->_xmlFactory = new Oai_Model_XmlFactory();
+        $this->xml           = new DOMDocument();
+        $this->proc          = new XSLTProcessor();
+        $this->configuration = new Oai_Model_Configuration($config);
+        $this->xmlFactory    = new Oai_Model_XmlFactory();
     }
 
-    public function handleRequest(array $oaiRequest, $requestUri)
+    /**
+     * @param array  $parameters
+     * @param string $requestUri
+     * @return false|string|null
+     * @throws Oai_Model_Exception
+     * @throws Zend_Controller_Response_Exception
+     * @throws Zend_Exception
+     */
+    public function handleRequest($parameters, $requestUri)
     {
         // TODO move error handling into Oai_Model_Server
         try {
             // handle request
-            return $this->handleRequestIntern($oaiRequest, $requestUri);
+            return $this->handleRequestIntern($parameters, $requestUri);
         } catch (Oai_Model_Exception $e) {
             $errorCode = Oai_Model_Error::mapCode($e->getCode());
             $this->getLogger()->err($errorCode);
-            $this->_proc->setParameter('', 'oai_error_code', $errorCode);
+            $this->proc->setParameter('', 'oai_error_code', $errorCode);
             $this->getLogger()->err($e->getMessage());
-            $this->_proc->setParameter('', 'oai_error_message', htmlentities($e->getMessage()));
+            $this->proc->setParameter('', 'oai_error_message', htmlentities($e->getMessage(), ENT_NOQUOTES));
         } catch (Oai_Model_ResumptionTokenException $e) {
             $this->getLogger()->err($e);
-            $this->_proc->setParameter('', 'oai_error_code', 'unknown');
-            $this->_proc->setParameter(
+            $this->proc->setParameter('', 'oai_error_code', 'unknown');
+            $this->proc->setParameter(
                 '',
                 'oai_error_message',
                 'An error occured while processing the resumption token.'
@@ -125,58 +141,35 @@ class Oai_Model_Server extends Application_Model_Abstract
             $this->getResponse()->setHttpResponseCode(500);
         } catch (Exception $e) {
             $this->getLogger()->err($e);
-            $this->_proc->setParameter('', 'oai_error_code', 'unknown');
-            $this->_proc->setParameter('', 'oai_error_message', 'An internal error occured.');
+            $this->proc->setParameter('', 'oai_error_code', 'unknown');
+            $this->proc->setParameter('', 'oai_error_message', 'An internal error occured.');
             $this->getResponse()->setHttpResponseCode(500);
         }
 
-        $this->_xml = new DOMDocument();
+        $this->xml = new DOMDocument();
 
-        return $this->_proc->transformToXML($this->_xml);
+        return $this->proc->transformToXML($this->xml);
     }
 
     /**
      * Handles an OAI request.
      *
-     * @param  array  $oaiRequest Contains full request information
+     * @param Oai_Model_Request|array $oaiRequest Contains full request information TODO BUG check parameter type
+     * @param string                  $requestUri
      * @throws Oai_Model_Exception Thrown if the request could not be handled.
-     * @return void
+     * @return string Generated XML
      */
-    protected function handleRequestIntern(array $oaiRequest, $requestUri)
+    protected function handleRequestIntern($oaiRequest, $requestUri)
     {
         $this->init();
 
         // Setup stylesheet
         $this->loadStyleSheet($this->getScriptPath() . '/oai-pmh.xslt');
 
-        $this->_proc->registerPHPFunctions('Opus_Language::getLanguageCode');
-        Application_Xslt::registerViewHelper(
-            $this->_proc,
-            [
-                'optionValue',
-                'fileUrl',
-                'frontdoorUrl',
-                'transferUrl',
-                'dcmiType',
-                'dcType',
-                'openAireType'
-            ]
-        );
-        $this->_proc->setParameter('', 'urnResolverUrl', $this->getConfig()->urn->resolverUrl);
-        $this->_proc->setParameter('', 'doiResolverUrl', $this->getConfig()->doi->resolverUrl);
-
-        // Set response time
-        $this->_proc->setParameter(
-            '',
-            'dateTime',
-            str_replace('+00:00', 'Z', Zend_Date::now()->setTimeZone('UTC')->getIso())
-        );
-
-        // set OAI base url
-        $this->_proc->setParameter('', 'oai_base_url', $this->getOaiBaseUrl());
+        $this->setupProcessor();
 
         $metadataPrefixPath = $this->getScriptPath() . DIRECTORY_SEPARATOR . 'prefixes';
-        $resumptionPath = $this->_configuration->getResumptionTokenPath();
+        $resumptionPath     = $this->configuration->getResumptionTokenPath();
 
         $request = new Oai_Model_Request();
         $request->setPathToMetadataPrefixFiles($metadataPrefixPath);
@@ -199,55 +192,59 @@ class Oai_Model_Server extends Application_Model_Abstract
         // TODO refactor - temporary hack to have all lower case version of metadataPrefix to use in XSLT
         if (isset($oaiRequest['metadataPrefix'])) {
             $oaiRequest['metadataPrefixMode'] = strtolower($oaiRequest['metadataPrefix']);
-            $metadataPrefix = $oaiRequest['metadataPrefixMode'];
+            $metadataPrefix                   = $oaiRequest['metadataPrefixMode'];
         } else {
             $metadataPrefix = null;
         }
 
         foreach ($oaiRequest as $parameter => $value) {
-            Zend_Registry::get('Zend_Log')->debug("'oai_' . $parameter, $value");
-            $this->_proc->setParameter('', 'oai_' . $parameter, $value);
+             Log::get()->debug("'oai_' . $parameter, $value");
+            $this->proc->setParameter('', 'oai_' . $parameter, $value);
         }
 
         switch ($oaiRequest['verb']) {
             case 'GetRecord':
-                $this->_handleGetRecord($oaiRequest);
+                $this->handleGetRecord($oaiRequest);
                 break;
 
             case 'Identify':
-                $this->_handleIdentify();
+                $this->handleIdentify();
                 break;
 
             case 'ListIdentifiers':
-                $this->_handleListIdentifiers($oaiRequest);
+                $this->handleListIdentifiers($oaiRequest);
                 break;
 
             case 'ListMetadataFormats':
-                $this->_handleListMetadataFormats($oaiRequest);
+                $this->handleListMetadataFormats($oaiRequest);
                 break;
 
             case 'ListRecords':
-                $this->_handleListRecords($oaiRequest);
+                $this->handleListRecords($oaiRequest);
                 break;
 
             case 'ListSets':
-                $this->_handleListSets();
+                $this->handleListSets();
                 break;
 
             default:
                 throw new Exception('The verb provided in the request is illegal.', Oai_Model_Error::BADVERB);
-                break;
         }
 
-        $doc = $this->_proc->transformToDoc($this->_xml);
+        $doc = $this->proc->transformToDoc($this->xml);
+
+        // Requests with resumptionToken do not provide metadataPrefix in the URL
+        if ($metadataPrefix === null && isset($oaiRequest['metadataPrefixMode'])) {
+            $metadataPrefix = $oaiRequest['metadataPrefixMode'];
+        }
 
         // TODO is this something that should happen for all metadataPrefixes (OPUSVIER-4531)
         $metadataPrefixTags = [
-            'oai_dc' => 'dc',
-            'oai_pp' => 'ProPrint',
+            'oai_dc'        => 'dc',
+            'oai_pp'        => 'ProPrint',
             'xmetadissplus' => 'xMetaDiss',
-            'epicur' => 'epicur',
-            'marc21' => 'collection'
+            'epicur'        => 'epicur',
+            'marc21'        => 'collection',
         ];
 
         if ($metadataPrefix !== null && isset($metadataPrefixTags[$metadataPrefix])) {
@@ -260,18 +257,51 @@ class Oai_Model_Server extends Application_Model_Abstract
         }
 
         $doc->formatOutput = true;
-        $xml = $doc->saveXML();
+        return $doc->saveXML();
+    }
 
-        return $xml;
+    /**
+     * @throws Zend_Exception
+     *
+     * TODO factory (function) for processor
+     */
+    protected function setupProcessor()
+    {
+        $this->proc->registerPHPFunctions('Opus\Common\Language::getLanguageCode');
+        Application_Xslt::registerViewHelper(
+            $this->proc,
+            [
+                'optionValue',
+                'fileUrl',
+                'frontdoorUrl',
+                'transferUrl',
+                'dcmiType',
+                'dcType',
+                'openAireType',
+            ]
+        );
+        $this->proc->setParameter('', 'urnResolverUrl', $this->getConfig()->urn->resolverUrl);
+        $this->proc->setParameter('', 'doiResolverUrl', $this->getConfig()->doi->resolverUrl);
+
+        // Set response time
+        $this->proc->setParameter(
+            '',
+            'dateTime',
+            str_replace(
+                '+00:00',
+                'Z',
+                (new DateTime())->setTimezone(new DateTimeZone('UTC'))->format(DateTime::RFC3339)
+            )
+        );
+
+        // set OAI base url
+        $this->proc->setParameter('', 'oai_base_url', $this->getOaiBaseUrl());
     }
 
     /**
      * Implements response for OAI-PMH verb 'GetRecord'.
-     *
-     * @param  array &$oaiRequest Contains full request information
-     * @return void
      */
-    protected function _handleGetRecord(array &$oaiRequest)
+    protected function handleGetRecord(array &$oaiRequest)
     {
         // Identifier references metadata Urn, not plain Id!
         // Currently implemented as 'oai:foo.bar.de:{docId}' or 'urn:nbn...-123'
@@ -279,8 +309,8 @@ class Oai_Model_Server extends Application_Model_Abstract
 
         $document = null;
         try {
-            $document = new Opus_Document($docId);
-        } catch (Opus_Model_NotFoundException $ex) {
+            $document = Document::get($docId);
+        } catch (NotFoundException $ex) {
             throw new Oai_Model_Exception(
                 'The value of the identifier argument is unknown or illegal in this repository.',
                 Oai_Model_Error::IDDOESNOTEXIST
@@ -290,16 +320,18 @@ class Oai_Model_Server extends Application_Model_Abstract
         $metadataPrefix = $oaiRequest['metadataPrefix'];
 
         // do not deliver documents which are restricted by document state
-        if (is_null($document)
-            or (false === in_array($document->getServerState(), $this->_deliveringDocumentStates))
-            or (false === $document->hasEmbargoPassed() and stripos($metadataPrefix, 'xmetadiss') === 0)) {
+        if (
+            $document === null
+            || (false === in_array($document->getServerState(), $this->deliveringDocumentStates))
+            || (false === $document->hasEmbargoPassed() && stripos($metadataPrefix, 'xmetadiss') === 0)
+        ) {
             throw new Oai_Model_Exception('Document is not available for OAI export!', Oai_Model_Error::NORECORDSMATCH);
         }
 
         // for xMetaDiss it must be habilitation-thesis or doctoral-thesis
         if ('xMetaDiss' === $metadataPrefix) {
-            $type = $document->getType();
-            $isHabOrDoc = in_array($type, $this->_xMetaDissRestriction);
+            $type       = $document->getType();
+            $isHabOrDoc = in_array($type, $this->xMetaDissRestriction);
             if (false === $isHabOrDoc) {
                 throw new Oai_Model_Exception(
                     "The combination of the given values results in an empty list (xMetaDiss only for habilitation"
@@ -308,61 +340,61 @@ class Oai_Model_Server extends Application_Model_Abstract
                 );
             }
         }
-        $this->_xml->appendChild($this->_xml->createElement('Documents'));
+        $this->xml->appendChild($this->xml->createElement('Documents'));
 
         $this->createXmlRecord($document);
     }
 
     /**
      * Implements response for OAI-PMH verb 'Identify'.
-     *
-     * @param  array &$oaiRequest Contains full request information
-     * @return void
      */
-    protected function _handleIdentify()
+    protected function handleIdentify()
     {
-        $email = $this->_configuration->getEmailContact();
-        $repName = $this->_configuration->getRepositoryName();
-        $repIdentifier = $this->_configuration->getRepositoryIdentifier();
-        $sampleIdentifier = $this->_configuration->getSampleIdentifier();
+        $email            = $this->configuration->getEmailContact();
+        $repName          = $this->configuration->getRepositoryName();
+        $repIdentifier    = $this->configuration->getRepositoryIdentifier();
+        $sampleIdentifier = $this->configuration->getSampleIdentifier();
 
         // Set backup date if database query does not return a date.
-        $earliestDate = new Zend_Date('1970-01-01', Zend_Date::ISO_8601);
+        $earliestDate = DateTime::createFromFormat("Y-m-d", '1970-01-01');
 
-        $earliestDateFromDb = Opus_Document::getEarliestPublicationDate();
-        if (! is_null($earliestDateFromDb)) {
-            $earliestDate = new Zend_Date($earliestDateFromDb, Zend_Date::ISO_8601);
+        $earliestDateFromDb = Repository::getInstance()->getModelRepository(Document::class)
+            ->getEarliestPublicationDate();
+
+        if ($earliestDateFromDb !== null) {
+            // TODO: Do we expect the full ISO format or Y-m-d? ZEND_DATE::ISO_8601 was probably less strict here.
+            $earliestDate = DateTime::createFromFormat(DateTime::ATOM, $earliestDateFromDb);
+            if ($earliestDate === false) {
+                $earliestDate = DateTime::createFromFormat("Y-m-d", $earliestDateFromDb);
+            }
         }
-        $earliestDateIso = $earliestDate->get('yyyy-MM-dd');
+
+        $earliestDateIso = $earliestDate->format('Y-m-d');
 
         // set parameters for oai-pmh.xslt
-        $this->_proc->setParameter('', 'emailAddress', $email);
-        $this->_proc->setParameter('', 'repName', $repName);
-        $this->_proc->setParameter('', 'repIdentifier', $repIdentifier);
-        $this->_proc->setParameter('', 'sampleIdentifier', $sampleIdentifier);
-        $this->_proc->setParameter('', 'earliestDate', $earliestDateIso);
-        $this->_xml->appendChild($this->_xml->createElement('Documents'));
+        $this->proc->setParameter('', 'emailAddress', $email);
+        $this->proc->setParameter('', 'repName', $repName);
+        $this->proc->setParameter('', 'repIdentifier', $repIdentifier);
+        $this->proc->setParameter('', 'sampleIdentifier', $sampleIdentifier);
+        $this->proc->setParameter('', 'earliestDate', $earliestDateIso);
+        $this->xml->appendChild($this->xml->createElement('Documents'));
     }
 
     /**
      * Implements response for OAI-PMH verb 'ListIdentifiers'.
-     *
-     * @param  array &$oaiRequest Contains full request information
-     * @return void
      */
-    protected function _handleListIdentifiers(array &$oaiRequest)
+    protected function handleListIdentifiers(array &$oaiRequest)
     {
-        $maxIdentifier = $this->_configuration->getMaxListIdentifiers();
-        $this->_handlingOfLists($oaiRequest, $maxIdentifier);
+        $maxIdentifier = $this->configuration->getMaxListIdentifiers();
+        $this->handlingOfLists($oaiRequest, $maxIdentifier);
     }
 
     /**
      * Implements response for OAI-PMH verb 'ListMetadataFormats'.
      *
-     * @param  array &$oaiRequest Contains full request information
-     * @return void
+     * @param  array $oaiRequest Contains full request information
      */
-    protected function _handleListMetadataFormats($oaiRequest)
+    protected function handleListMetadataFormats($oaiRequest)
     {
         if (isset($oaiRequest['identifier'])) {
             try {
@@ -370,12 +402,12 @@ class Oai_Model_Server extends Application_Model_Abstract
                 $docId = $this->getDocumentIdByIdentifier($oaiRequest['identifier']);
             } catch (Oai_Model_Exception $ome) {
                 // set second error so 'badArgument' and 'idDoesNotExist' are reported back
-                $this->_proc->setParameter(
+                $this->proc->setParameter(
                     '',
                     'oai_error_code2',
                     Oai_Model_Error::mapCode(Oai_Model_Error::IDDOESNOTEXIST)
                 );
-                $this->_proc->setParameter(
+                $this->proc->setParameter(
                     '',
                     'oai_error_message2',
                     'Identifier is invalid and does not exist.'
@@ -384,86 +416,75 @@ class Oai_Model_Server extends Application_Model_Abstract
             }
         }
 
-        $this->_xml->appendChild($this->_xml->createElement('Documents'));
+        $this->xml->appendChild($this->xml->createElement('Documents'));
     }
 
     /**
      * Implements response for OAI-PMH verb 'ListRecords'.
-     *
-     * @param  array &$oaiRequest Contains full request information
-     * @return void
      */
-    protected function _handleListRecords(array &$oaiRequest)
+    protected function handleListRecords(array &$oaiRequest)
     {
-
-        $maxRecords = $this->_configuration->getMaxListRecords();
-        $this->_handlingOfLists($oaiRequest, $maxRecords);
+        $maxRecords = $this->configuration->getMaxListRecords();
+        $this->handlingOfLists($oaiRequest, $maxRecords);
     }
 
     /**
      * Implements response for OAI-PMH verb 'ListSets'.
-     *
-     * @param  array &$oaiRequest Contains full request information
-     * @return void
      */
-    protected function _handleListSets()
+    protected function handleListSets()
     {
-        $logger = $this->getLogger();
+        $repIdentifier = $this->configuration->getRepositoryIdentifier();
 
-        $repIdentifier = $this->_configuration->getRepositoryIdentifier();
-
-        $this->_proc->setParameter('', 'repIdentifier', $repIdentifier);
-        $this->_xml->appendChild($this->_xml->createElement('Documents'));
+        $this->proc->setParameter('', 'repIdentifier', $repIdentifier);
+        $this->xml->appendChild($this->xml->createElement('Documents'));
 
         $oaiSets = new Oai_Model_Sets();
 
         $sets = $oaiSets->getSets();
 
         foreach ($sets as $type => $name) {
-            $opusDoc = $this->_xml->createElement('Opus_Sets');
-            $typeAttr = $this->_xml->createAttribute('Type');
-            $typeValue = $this->_xml->createTextNode($type);
+            $opusDoc   = $this->xml->createElement('Opus_Sets');
+            $typeAttr  = $this->xml->createAttribute('Type');
+            $typeValue = $this->xml->createTextNode($type);
             $typeAttr->appendChild($typeValue);
             $opusDoc->appendChild($typeAttr);
-            $nameAttr = $this->_xml->createAttribute('TypeName');
-            $nameValue = $this->_xml->createTextNode($name);
+            $nameAttr  = $this->xml->createAttribute('TypeName');
+            $nameValue = $this->xml->createTextNode($name);
             $nameAttr->appendChild($nameValue);
             $opusDoc->appendChild($nameAttr);
-            $this->_xml->documentElement->appendChild($opusDoc);
+            $this->xml->documentElement->appendChild($opusDoc);
         }
     }
 
     /**
      * Helper method for handling lists.
      *
-     * @param array &$oaiRequest
      * @param mixed $maxRecords
-     * @return void
      */
-    private function _handlingOfLists(array &$oaiRequest, $maxRecords)
+    private function handlingOfLists(array &$oaiRequest, $maxRecords)
     {
         if (true === empty($maxRecords)) {
             $maxRecords = 100;
         }
 
-        $repIdentifier = $this->_configuration->getRepositoryIdentifier();
-        $tempPath = $this->_configuration->getResumptionTokenPath();
+        $repIdentifier = $this->configuration->getRepositoryIdentifier();
+        $tempPath      = $this->configuration->getResumptionTokenPath();
 
-        $this->_proc->setParameter('', 'repIdentifier', $repIdentifier);
-        $this->_xml->appendChild($this->_xml->createElement('Documents'));
+        $this->proc->setParameter('', 'repIdentifier', $repIdentifier);
+        $this->xml->appendChild($this->xml->createElement('Documents'));
 
         // do some initialisation
-        $cursor = 0;
+        $cursor   = 0;
         $totalIds = 0;
-        $start = $maxRecords + 1;
-        $restIds = [];
+        $start    = $maxRecords + 1;
+        $restIds  = [];
 
         $metadataPrefix = null;
         if (true === array_key_exists('metadataPrefix', $oaiRequest)) {
             $metadataPrefix = $oaiRequest['metadataPrefix'];
         }
 
-        $tokenWorker = new Oai_Model_Resumptiontokens;
+        $tokenWorker = new Oai_Model_Resumptiontokens();
         $tokenWorker->setResumptionPath($tempPath);
 
         $resumed = false;
@@ -471,34 +492,37 @@ class Oai_Model_Server extends Application_Model_Abstract
         if (false === empty($oaiRequest['resumptionToken'])) {
             // parameter resumptionToken is given
             $resParam = $oaiRequest['resumptionToken'];
-            $token = $tokenWorker->getResumptionToken($resParam);
+            $token    = $tokenWorker->getResumptionToken($resParam);
 
-            if (true === is_null($token)) {
+            if ($token === null) {
                 throw new Oai_Model_Exception("file could not be read.", Oai_Model_Error::BADRESUMPTIONTOKEN);
             }
 
-            $cursor = $token->getStartPosition() - 1;
-            $start = $token->getStartPosition() + $maxRecords;
-            $totalIds = $token->getTotalIds();
-            $restIds = $token->getDocumentIds();
+            $cursor         = $token->getStartPosition() - 1;
+            $start          = $token->getStartPosition() + $maxRecords;
+            $totalIds       = $token->getTotalIds();
+            $restIds        = $token->getDocumentIds();
             $metadataPrefix = $token->getMetadataPrefix();
 
-            $this->_proc->setParameter('', 'oai_metadataPrefix', $metadataPrefix);
+            $oaiRequest['metadataPrefix']     = $metadataPrefix;
+            $oaiRequest['metadataPrefixMode'] = strtolower($metadataPrefix);
+            $this->proc->setParameter('', 'oai_metadataPrefix', $metadataPrefix);
+            $this->proc->setParameter('', 'oai_metadataPrefixMode', strtolower($metadataPrefix));
             $resumed = true;
         } else {
             // no resumptionToken is given
-            $docListModel = new Oai_Model_DocumentList();
-            $docListModel->deliveringDocumentStates = $this->_deliveringDocumentStates;
-            $docListModel->xMetaDissRestriction = $this->_xMetaDissRestriction;
-            $restIds = $docListModel->query($oaiRequest);
-            $totalIds = count($restIds);
+            $docListModel                           = new Oai_Model_DocumentList();
+            $docListModel->deliveringDocumentStates = $this->deliveringDocumentStates;
+            $docListModel->xMetaDissRestriction     = $this->xMetaDissRestriction;
+            $restIds                                = $docListModel->query($oaiRequest);
+            $totalIds                               = count($restIds);
         }
 
         // handling of document ids
         $workIds = array_splice($restIds, 0, $maxRecords);
 
         foreach ($workIds as $docId) {
-            $document = new Opus_Document($docId);
+            $document = Document::get($docId);
             $this->createXmlRecord($document);
         }
 
@@ -535,133 +559,133 @@ class Oai_Model_Server extends Application_Model_Abstract
     /**
      * Set parameters for resumptionToken-line.
      *
-     * @param  string  $res value of the resumptionToken
-     * @param  int     $cursor value of the cursor
-     * @param  int     $totalIds value of the total Ids
+     * @param string $res value of the resumptionToken
+     * @param int    $cursor value of the cursor
+     * @param int    $totalIds value of the total Ids
      */
     private function setParamResumption($res, $cursor, $totalIds)
     {
-        $tomorrow = str_replace('+00:00', 'Z', Zend_Date::now()->addDay(1)->setTimeZone('UTC')->getIso());
-        $this->_proc->setParameter('', 'dateDelete', $tomorrow);
-        $this->_proc->setParameter('', 'res', $res);
-        $this->_proc->setParameter('', 'cursor', $cursor);
-        $this->_proc->setParameter('', 'totalIds', $totalIds);
+        $tomorrow = str_replace(
+            '+00:00',
+            'Z',
+            (new DateTime())->modify('+1 day')->setTimezone(new DateTimeZone('UTC'))->format(DateTime::RFC3339)
+        );
+
+        $this->proc->setParameter('', 'dateDelete', $tomorrow);
+        $this->proc->setParameter('', 'res', $res);
+        $this->proc->setParameter('', 'cursor', $cursor ?? '');
+        $this->proc->setParameter('', 'totalIds', $totalIds);
     }
 
     /**
      * Create xml structure for one record
      *
-     * @param  Opus_Document $document
-     * @param  string        $metadataPrefix
-     * @return void
+     * @param DocumentInterface $document
      */
-    private function createXmlRecord(Opus_Document $document)
+    private function createXmlRecord($document)
     {
-        $docId = $document->getId();
+        $docId   = $document->getId();
         $domNode = $this->getDocumentXmlDomNode($document);
 
         // add frontdoor url
-        $this->_addFrontdoorUrlAttribute($domNode, $docId);
+        $this->addFrontdoorUrlAttribute($domNode, $docId);
 
         // add ddb transfer element
-        $this->_addDdbTransferElement($domNode, $docId);
+        $this->addDdbTransferElement($domNode, $docId);
 
         // add access rights to element
-        $this->_addAccessRights($domNode, $document);
+        $this->addAccessRights($domNode, $document);
 
         // remove file elements which should not be exported through OAI
         // Iterating over DOMNodeList is only save for readonly-operations;
         // copy element-by-element before removing!
-        $filenodes = $domNode->getElementsByTagName('File');
+        $filenodes     = $domNode->getElementsByTagName('File');
         $filenodesList = [];
         foreach ($filenodes as $filenode) {
             $filenodesList[] = $filenode;
 
             // add file download urls
-            $this->_addFileUrlAttribute($filenode, $docId, $filenode->getAttribute('PathName'));
+            $this->addFileUrlAttribute($filenode, $docId, $filenode->getAttribute('PathName'));
         }
 
         // remove file elements which should not be exported through OAI
         foreach ($filenodesList as $filenode) {
-            if ((false === $filenode->hasAttribute('VisibleInOai'))
-                or ('1' !== $filenode->getAttribute('VisibleInOai'))) {
+            if (
+                (false === $filenode->hasAttribute('VisibleInOai'))
+                || ('1' !== $filenode->getAttribute('VisibleInOai'))
+            ) {
                 $domNode->removeChild($filenode);
             }
         }
 
-        $node = $this->_xml->importNode($domNode, true);
+        $node = $this->xml->importNode($domNode, true);
 
         $dcTypeHelper = new Application_View_Helper_DcType();
 
         $type = $document->getType();
-        $this->_addSpecInformation($node, 'doc-type:' . $dcTypeHelper->dcType($type));
+        $this->addSpecInformation($node, 'doc-type:' . $dcTypeHelper->dcType($type));
 
-        $bibliography = $document->getBelongsToBibliography() == 1 ? 'true' : 'false';
-        $this->_addSpecInformation($node, 'bibliography:' . $bibliography);
+        $bibliography = $document->getBelongsToBibliography() === 1 ? 'true' : 'false';
+        $this->addSpecInformation($node, 'bibliography:' . $bibliography);
 
-        $logger = $this->getLogger();
+        $logger   = $this->getLogger();
         $setSpecs = Oai_Model_SetSpec::getSetSpecsFromCollections($document->getCollection());
         foreach ($setSpecs as $setSpec) {
             if (preg_match("/^([A-Za-z0-9\-_\.!~\*'\(\)]+)(:[A-Za-z0-9\-_\.!~\*'\(\)]+)*$/", $setSpec)) {
-                $this->_addSpecInformation($node, $setSpec);
+                $this->addSpecInformation($node, $setSpec);
                 continue;
             }
             $logger->info("skipping invalid setspec: " . $setSpec);
         }
 
-        $this->_xml->documentElement->appendChild($node);
+        $this->xml->documentElement->appendChild($node);
     }
 
     /**
      * Add spec header information to DOM document.
      *
-     * @param DOMNode $document
-     * @param mixed   $information
-     * @return void
+     * @param mixed $information
      */
-    private function _addSpecInformation(DOMNode $document, $information)
+    private function addSpecInformation(DOMNode $document, $information)
     {
-
-        $setSpecAttribute = $this->_xml->createAttribute('Value');
-        $setSpecAttributeValue = $this->_xml->createTextNode($information);
+        $setSpecAttribute      = $this->xml->createAttribute('Value');
+        $setSpecAttributeValue = $this->xml->createTextNode($information);
         $setSpecAttribute->appendChild($setSpecAttributeValue);
 
-        $setSpecElement = $this->_xml->createElement('SetSpec');
+        $setSpecElement = $this->xml->createElement('SetSpec');
         $setSpecElement->appendChild($setSpecAttribute);
         $document->appendChild($setSpecElement);
     }
 
     /**
-     * Add the frontdoorurl attribute to Opus_Document XML output.
+     * Add the frontdoorurl attribute to Document XML output.
      *
-     * @param DOMNode $document Opus_Document XML serialisation
+     * @param DOMNode $document Document XML serialisation
      * @param string  $docid    Id of the document
-     * @return void
      */
-    private function _addFrontdoorUrlAttribute(DOMNode $document, $docid)
+    private function addFrontdoorUrlAttribute(DOMNode $document, $docid)
     {
         $url = $this->getBaseUrl() . '/frontdoor/index/index/docId/' . $docid;
 
         $owner = $document->ownerDocument;
-        $attr = $owner->createAttribute('frontdoorurl');
+        $attr  = $owner->createAttribute('frontdoorurl');
         $attr->appendChild($owner->createTextNode($url));
         $document->appendChild($attr);
     }
 
     /**
-     * Add download link url attribute to Opus_Document XML output.
+     * Add download link url attribute to Document XML output.
      *
-     * @param DOMNode $document Opus_Document XML serialisation
+     * @param DOMNode $file     Document XML serialisation
      * @param string  $docid    Id of the document
      * @param string  $filename File path name
-     * @return void
      */
-    private function _addFileUrlAttribute(DOMNode $file, $docid, $filename)
+    private function addFileUrlAttribute($file, $docid, $filename)
     {
         $url = $this->getBaseUrl() . '/files/' . $docid . '/' . rawurlencode($filename);
 
         $owner = $file->ownerDocument;
-        $attr = $owner->createAttribute('url');
+        $attr  = $owner->createAttribute('url');
         $attr->appendChild($owner->createTextNode($url));
         $file->appendChild($attr);
     }
@@ -669,11 +693,10 @@ class Oai_Model_Server extends Application_Model_Abstract
     /**
      * Add <ddb:transfer> element for ddb container file.
      *
-     * @param DOMNode $document Opus_Document XML serialisation
+     * @param DOMNode $document Document XML serialisation
      * @param string  $docid    Document ID
-     * @return void
      */
-    private function _addDdbTransferElement(DOMNode $document, $docid)
+    private function addDdbTransferElement(DOMNode $document, $docid)
     {
         $url = $this->getBaseUrl() . '/oai/container/index/docId/' . $docid;
 
@@ -685,13 +708,13 @@ class Oai_Model_Server extends Application_Model_Abstract
     /**
      * Add rights element to output.
      *
-     * @param DOMNode $domNode
-     * @param Opus_Document $doc
+     * @param DOMNode           $domNode
+     * @param DocumentInterface $doc
      */
-    private function _addAccessRights(DOMNode $domNode, Opus_Document $doc)
+    private function addAccessRights($domNode, $doc)
     {
         $fileElement = $domNode->ownerDocument->createElement('Rights');
-        $fileElement->setAttribute('Value', $this->_xmlFactory->getAccessRights($doc));
+        $fileElement->setAttribute('Value', $this->xmlFactory->getAccessRights($doc));
         $domNode->appendChild($fileElement);
     }
 
@@ -699,7 +722,7 @@ class Oai_Model_Server extends Application_Model_Abstract
      * Retrieve a document id by an oai identifier.
      *
      * @param string $oaiIdentifier
-     * @result int
+     * @return int
      */
     private function getDocumentIdByIdentifier($oaiIdentifier)
     {
@@ -708,11 +731,11 @@ class Oai_Model_Server extends Application_Model_Abstract
         $docId = null;
         switch ($identifierParts[0]) {
             case 'urn':
-                $finder = new Opus_DocumentFinder();
-                $finder->setIdentifierTypeValue('urn', $oaiIdentifier);
-                $finder->setServerStateInList($this->_deliveringDocumentStates);
-                $docIds = $finder->ids();
-                $docId = $docIds[0];
+                $finder = Repository::getInstance()->getDocumentFinder();
+                $finder->setIdentifierValue('urn', $oaiIdentifier);
+                $finder->setServerState($this->deliveringDocumentStates);
+                $docIds = $finder->getIds();
+                $docId  = $docIds[0];
                 break;
             case 'oai':
                 if (isset($identifierParts[2])) {
@@ -727,7 +750,7 @@ class Oai_Model_Server extends Application_Model_Abstract
                 break;
         }
 
-        if (empty($docId) or ! preg_match('/^\d+$/', $docId)) {
+        if (empty($docId) || ! preg_match('/^\d+$/', $docId)) {
             throw new Oai_Model_Exception(
                 'The value of the identifier argument is unknown or illegal in this repository.',
                 Oai_Model_Error::IDDOESNOTEXIST
@@ -738,30 +761,32 @@ class Oai_Model_Server extends Application_Model_Abstract
     }
 
     /**
-     *
-     * @param Opus_Document $document
+     * @param DocumentInterface $document
      * @return DOMNode
      * @throws Exception
      */
     private function getDocumentXmlDomNode($document)
     {
-        if (! in_array($document->getServerState(), $this->_deliveringDocumentStates)) {
+        if (! in_array($document->getServerState(), $this->deliveringDocumentStates)) {
             $message = 'Trying to get a document in server state "' . $document->getServerState() . '"';
-            Zend_Registry::get('Zend_Log')->err($message);
+             Log::get()->err($message);
             throw new Exception($message);
         }
 
-        $xmlModel = new Opus_Model_Xml();
+        $xmlModel = new Xml();
         $xmlModel->setModel($document);
         $xmlModel->excludeEmptyFields();
-        $xmlModel->setStrategy(new Opus_Model_Xml_Version1);
-        $xmlModel->setXmlCache(new Opus_Model_Xml_Cache);
+        $xmlModel->setStrategy(new Version1());
+        $xmlModel->setXmlCache(Repository::getInstance()->getDocumentXmlCache());
         return $xmlModel->getDomDocument()->getElementsByTagName('Opus_Document')->item(0);
     }
 
+    /**
+     * @return string
+     */
     private function getOaiBaseUrl()
     {
-        $oaiBaseUrl = $this->_configuration->getOaiBaseUrl();
+        $oaiBaseUrl = $this->configuration->getOaiBaseUrl();
 
         // if no OAI base url is set, use local information as base url
         if (true === empty($oaiBaseUrl)) {
@@ -774,54 +799,78 @@ class Oai_Model_Server extends Application_Model_Abstract
     /**
      * Load an xslt stylesheet.
      *
-     * @return void
+     * @param string $stylesheet
      */
     protected function loadStyleSheet($stylesheet)
     {
-        $this->_xslt = new DomDocument;
-        $this->_xslt->load($stylesheet);
-        $this->_proc->importStyleSheet($this->_xslt);
+        $this->xslt = new DOMDocument();
+        $this->xslt->load($stylesheet);
+        $this->proc->importStyleSheet($this->xslt);
         if (isset($_SERVER['HTTP_HOST'])) {
-            $this->_proc->setParameter('', 'host', $_SERVER['HTTP_HOST']);
+            $this->proc->setParameter('', 'host', $_SERVER['HTTP_HOST']);
         }
-        $this->_proc->setParameter('', 'server', $this->getBaseUri());
+        $this->proc->setParameter('', 'server', $this->getBaseUri());
     }
 
+    /**
+     * @return string
+     */
     public function getScriptPath()
     {
-        return $this->_scriptPath;
+        return $this->scriptPath;
     }
 
+    /**
+     * @param string $scriptPath
+     */
     public function setScriptPath($scriptPath)
     {
-        $this->_scriptPath = $scriptPath;
+        $this->scriptPath = $scriptPath;
     }
 
+    /**
+     * @return string
+     */
     public function getBaseUrl()
     {
-        return $this->_baseUrl;
+        return $this->baseUrl;
     }
 
+    /**
+     * @param string $baseUrl
+     */
     public function setBaseUrl($baseUrl)
     {
-        $this->_baseUrl = $baseUrl;
+        $this->baseUrl = $baseUrl;
     }
 
+    /**
+     * @return string
+     */
     public function getBaseUri()
     {
-        return $this->_baseUri;
+        return $this->baseUri;
     }
 
+    /**
+     * @param string $baseUri
+     */
     public function setBaseUri($baseUri)
     {
-        $this->_baseUri = $baseUri;
+        $this->baseUri = $baseUri;
     }
 
+    /**
+     * @param Zend_Controller_Response_Http $response
+     */
     public function setResponse($response)
     {
         $this->response = $response;
     }
 
+    /**
+     * @return Zend_Controller_Response_Http
+     */
     public function getResponse()
     {
         return $this->response;

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -23,7 +24,12 @@
  * details. You should have received a copy of the GNU General Public License
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
+ * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\DocumentInterface;
 
 /**
  * Formular fuer den Upload von Dateien in der Administration.
@@ -35,28 +41,20 @@
  * - Label
  * - Kommentar
  * - Language
- *
- * @category    Application
- * @package     Admin_Form_File
- * @author      Henning Gerhardt (henning.gerhardt@slub-dresden.de)
- * @author      Jens Schwidder <schwidder@zib.de>
- * @author      Maximilian Salomon <salomon@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
- * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 class Admin_Form_File_Upload extends Application_Form_Model_Abstract
 {
+    public const ELEMENT_HASH       = 'OpusHash';
+    public const ELEMENT_FILE       = 'File';
+    public const ELEMENT_LABEL      = 'Label';
+    public const ELEMENT_COMMENT    = 'Comment';
+    public const ELEMENT_LANGUAGE   = 'Language';
+    public const ELEMENT_SORT_ORDER = 'SortOrder';
 
-    const ELEMENT_HASH       = 'OpusHash';
-    const ELEMENT_FILE       = 'File';
-    const ELEMENT_LABEL      = 'Label';
-    const ELEMENT_COMMENT    = 'Comment';
-    const ELEMENT_LANGUAGE   = 'Language';
-    const ELEMENT_SORT_ORDER = 'SortOrder';
+    public const SUBFORM_DOCINFO = 'Info';
 
-    const SUBFORM_DOCINFO    = 'Info';
-
-    private $_fileInfo = null;
+    /** @var array */
+    private $fileInfo;
 
     public function init()
     {
@@ -73,16 +71,16 @@ class Admin_Form_File_Upload extends Application_Form_Model_Abstract
             'file',
             self::ELEMENT_FILE,
             [
-            'required' => true,
-            'label' => 'admin_filemanager_element_file',
+                'required' => true,
+                'label'    => 'admin_filemanager_element_file',
             ]
         );
 
         $config = $this->getApplicationConfig();
 
-        $filenameOptions = [
+        $filenameOptions   = [
             'filenameMaxLength' => $config->publish->filenameMaxLength,
-            'filenameFormat' => $config->publish->filenameFormat
+            'filenameFormat'    => $config->publish->filenameFormat,
         ];
         $filenameValidator = new Application_Form_Validate_Filename($filenameOptions);
 
@@ -103,6 +101,9 @@ class Admin_Form_File_Upload extends Application_Form_Model_Abstract
         $this->getElement(self::ELEMENT_MODEL_ID)->setRequired(true);
     }
 
+    /**
+     * @param DocumentInterface $document
+     */
     public function populateFromModel($document)
     {
         $this->getSubForm(self::SUBFORM_DOCINFO)->populateFromModel($document);
@@ -112,7 +113,7 @@ class Admin_Form_File_Upload extends Application_Form_Model_Abstract
     /**
      * Speichert Datei und verknüpft sie mit dem Dokument.
      *
-     * @param Opus_Model_AbstractDb $document
+     * @param DocumentInterface $document
      */
     public function updateModel($document)
     {
@@ -139,18 +140,24 @@ class Admin_Form_File_Upload extends Application_Form_Model_Abstract
         }
     }
 
+    /**
+     * @return array
+     */
     public function getFileInfo()
     {
-        if (is_null($this->_fileInfo)) {
+        if ($this->fileInfo === null) {
             $upload = new Zend_File_Transfer_Adapter_Http();
             return $upload->getFileInfo();
         } else {
-            return $this->_fileInfo;
+            return $this->fileInfo;
         }
     }
 
+    /**
+     * @param array $fileInfo
+     */
     public function setFileInfo($fileInfo)
     {
-        $this->_fileInfo = $fileInfo;
+        $this->fileInfo = $fileInfo;
     }
 }

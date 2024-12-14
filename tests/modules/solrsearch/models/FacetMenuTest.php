@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,19 +25,18 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Tests
- * @author      Michael Lang <lang@zib.de>
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2014-2020, OPUS 4 development team
+ * @copyright   Copyright (c) 2014, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Search\Config;
+
 class Solrsearch_Model_FacetMenuTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['database'];
 
+    /** @var bool */
     protected $configModifiable = true;
 
     /**
@@ -44,19 +44,18 @@ class Solrsearch_Model_FacetMenuTest extends ControllerTestCase
      */
     public function testGetFacetLimitsFromConfig()
     {
-        $config = Zend_Registry::get('Zend_Config');
-        $config->merge(new Zend_Config(['searchengine' =>
-            ['solr' =>
-                ['facetlimit' =>
-                    [
+        $this->adjustConfiguration([
+            'searchengine' => [
+                'solr' => [
+                    'facetlimit' => [
                         'author_facet' => '3',
-                        'year' => '15'
-                    ]
-                ]
-            ]
-        ]));
+                        'year'         => '15',
+                    ],
+                ],
+            ],
+        ]);
 
-        $facetLimits = Opus\Search\Config::getFacetLimits();
+        $facetLimits = Config::getFacetLimits();
 
         $this->assertEquals(3, $facetLimits['author_facet']);
         $this->assertEquals(15, $facetLimits['published_year']);
@@ -72,29 +71,30 @@ class Solrsearch_Model_FacetMenuTest extends ControllerTestCase
      */
     public function testGetFacetLimitsFromConfigWithYearInverted()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config = $this->getConfig();
         if (isset($config->searchengine->solr->facets)) {
             $config->searchengine->solr->facets = 'year,doctype,author_facet,language,has_fulltext,belongs_to_bibliography,subject,institute';
         } else {
-            $testConfig = new Zend_Config([
+            $this->adjustConfiguration([
                 'searchengine' => [
                     'solr' => [
-                        'facets' => 'year,doctype,author_facet,language,has_fulltext,belongs_to_bibliography,subject,institute']]], true);
-            // Include the above made configuration changes in the application configuration.
-            $testConfig->merge($config);
+                        'facets' => 'year,doctype,author_facet,language,has_fulltext,belongs_to_bibliography,subject,institute',
+                    ],
+                ],
+            ]);
         }
-        $config->merge(new Zend_Config(['searchengine' =>
-            ['solr' =>
-                ['facetlimit' =>
-                    [
+        $this->adjustConfiguration([
+            'searchengine' => [
+                'solr' => [
+                    'facetlimit' => [
                         'author_facet' => '3',
-                        'year' => '15'
-                    ]
-                ]
-            ]
-        ]));
+                        'year'         => '15',
+                    ],
+                ],
+            ],
+        ]);
 
-        $facetLimits = Opus\Search\Config::getFacetLimits();
+        $facetLimits = Config::getFacetLimits();
 
         $this->assertEquals(3, $facetLimits['author_facet']);
         $this->assertEquals(15, $facetLimits['published_year']);
@@ -107,11 +107,11 @@ class Solrsearch_Model_FacetMenuTest extends ControllerTestCase
 
     public function testBuildFacetArray()
     {
-        $model = new Solrsearch_Model_FacetMenu();
-        $paramSet = [
+        $model      = new Solrsearch_Model_FacetMenu();
+        $paramSet   = [
             'facetNumber_author_facet' => 'all',
-            'facetNumber_year' => 'all',
-            'facetNumber_subject' => 'all'
+            'facetNumber_year'         => 'all',
+            'facetNumber_subject'      => 'all',
         ];
         $facetArray = $model->buildFacetArray($paramSet);
         $this->assertEquals(10000, $facetArray['author_facet']);
@@ -130,18 +130,22 @@ class Solrsearch_Model_FacetMenuTest extends ControllerTestCase
     public function testBuildFacetArrayWithYearInverted()
     {
         $model = new Solrsearch_Model_FacetMenu();
-        $config = Zend_Registry::get('Zend_Config');
+
+        $config = $this->getConfig();
+
         if (isset($config->searchengine->solr->facets)) {
             $config->searchengine->solr->facets = 'year_inverted,doctype,author_facet,language,has_fulltext,belongs_to_bibliography,subject,institute';
         } else {
-            $testConfig = new Zend_Config([
+            $this->adjustConfiguration([
                 'searchengine' => [
                     'solr' => [
-                        'facets' => 'year_inverted,doctype,author_facet,language,has_fulltext,belongs_to_bibliography,subject,institute']]], true);
-            // Include the above made configuration changes in the application configuration.
-            $testConfig->merge($config);
+                        'facets' => 'year_inverted,doctype,author_facet,language,has_fulltext,belongs_to_bibliography,subject,institute',
+                    ],
+                ],
+            ]);
         }
-        $paramSet = ['facetNumber_year' => 'all'];
+
+        $paramSet   = ['facetNumber_year' => 'all'];
         $facetArray = $model->buildFacetArray($paramSet);
         $this->assertEquals(10000, $facetArray['year']);
     }

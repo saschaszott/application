@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,52 +25,50 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @package     Form_Element
- * @author      Jens Schwidder <schwidder@zib.de>
- * @author      Sascha Szott <opus-development@saschaszott.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\EnrichmentKey;
+use Opus\Common\Model\ModelException;
+
 class Application_Form_Element_EnrichmentKeyTest extends FormElementTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['database', 'translation'];
 
-    /**
-     * @var string Name des Enrichment-Keys, der für Testzwecke angelegt wird
-     */
+    /** @var string Name des Enrichment-Keys, der für Testzwecke angelegt wird */
     private static $testEnrichmentKeyName = 'TestEnrichmentKey';
 
-    public function setUp()
+    public function setUp(): void
     {
-        $this->_formElementClass = 'Application_Form_Element_EnrichmentKey';
-        $this->_expectedDecoratorCount = 6;
-        $this->_expectedDecorators = [
+        $this->formElementClass       = 'Application_Form_Element_EnrichmentKey';
+        $this->expectedDecorators     = [
             'ViewHelper',
             'Errors',
             'Description',
             'ElementHtmlTag',
             'LabelNotEmpty',
-            'dataWrapper'
+            'dataWrapper',
+            'ElementHint',
         ];
-        $this->_staticViewHelper = 'viewFormSelect';
+        $this->expectedDecoratorCount = count($this->expectedDecorators);
+        $this->staticViewHelper       = 'viewFormSelect';
         parent::setUp();
 
         // create a new enrichment key with an untranslated name
-        $enrichmentKey = new Opus_EnrichmentKey();
+        $enrichmentKey = EnrichmentKey::new();
         $enrichmentKey->setName(self::$testEnrichmentKeyName);
         $enrichmentKey->store();
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         parent::tearDown();
 
         // remove previously created enrichment key
-        $enrichmentKey = new Opus_EnrichmentKey(self::$testEnrichmentKeyName);
-        if (! is_null($enrichmentKey)) {
+        $enrichmentKey = EnrichmentKey::get(self::$testEnrichmentKeyName);
+        if ($enrichmentKey !== null) {
             $enrichmentKey->delete();
         }
     }
@@ -79,9 +78,8 @@ class Application_Form_Element_EnrichmentKeyTest extends FormElementTestCase
      */
     public function testOptions()
     {
-
         // NOTE: This also refreshes the cache for enrichment keys. Static state can carry over between tests.
-        $allOptions = Opus_EnrichmentKey::getAll();
+        $allOptions = EnrichmentKey::getAll();
 
         $element = $this->getElement(); // creates form element for enrichment keys using cached keys
 
@@ -100,7 +98,7 @@ class Application_Form_Element_EnrichmentKeyTest extends FormElementTestCase
 
     public function testMessageTranslated()
     {
-        $translator = Zend_Registry::get('Zend_Translate');
+        $translator = Application_Translate::getInstance();
 
         $this->assertTrue($translator->isTranslated('validation_error_unknown_enrichmentkey'));
     }
@@ -139,26 +137,26 @@ class Application_Form_Element_EnrichmentKeyTest extends FormElementTestCase
      * Formularelement berücksichtigt wird, muss der Cache im Test explizit
      * zurückgesetzt werden.
      *
-     * @throws Opus_Model_Exception
+     * @throws ModelException
      */
     public function testNewEnrichmentKeyIsAvailableAsOption()
     {
         $element = $this->getElement();
         $options = $element->getMultiOptions();
 
-        $enrichmentKey = new Opus_EnrichmentKey();
+        $enrichmentKey = EnrichmentKey::new();
         $enrichmentKey->setName('thisnamedoesnotexist');
         $enrichmentKey->store();
 
-        $element = $this->getElement();
+        $element                              = $this->getElement();
         $optionsAfterInsertOfNewEnrichmentKey = $element->getMultiOptions();
 
         $this->assertEquals(count($options), count($optionsAfterInsertOfNewEnrichmentKey));
 
         // Cache zurücksetzen, so dass der neu angelegte Enrichment-Key berücksichtigt wird
-        Opus_EnrichmentKey::getAll(true);
+        EnrichmentKey::getAll(true);
 
-        $element = $this->getElement();
+        $element                              = $this->getElement();
         $optionsAfterInsertOfNewEnrichmentKey = $element->getMultiOptions();
 
         // jetzt sollte der neu eingefügte Enrichment-Key für das Formularelement sichtbar sein

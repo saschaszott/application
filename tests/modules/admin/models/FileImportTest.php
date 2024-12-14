@@ -25,40 +25,43 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @package     Admin_Model
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Document;
+
 class Admin_Model_FileImportTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['database'];
 
+    /** @var Admin_Model_FileImport */
     private $model;
 
+    /** @var int */
     private $documentId;
 
+    /** @var string */
     private $importFolder;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
         $this->model = new Admin_Model_FileImport();
 
         $this->importFolder = APPLICATION_PATH . '/tests/workspace/incoming';
-        $this->_clearImportFolder();
+        $this->clearImportFolder();
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
-        $this->_clearImportFolder();
+        $this->clearImportFolder();
         parent::tearDown();
     }
 
-    private function _clearImportFolder()
+    private function clearImportFolder()
     {
         foreach (new DirectoryIterator($this->importFolder) as $fileInfo) {
             if (! $fileInfo->isDot() && $fileInfo->isFile()) {
@@ -91,7 +94,7 @@ class Admin_Model_FileImportTest extends ControllerTestCase
 
         $this->model->addFilesToDocument($this->documentId, ['test.txt']);
 
-        $document = new Opus_Document($this->documentId);
+        $document = Document::get($this->documentId);
 
         $files = $document->getFile();
 
@@ -118,21 +121,17 @@ class Admin_Model_FileImportTest extends ControllerTestCase
         unlink($this->importFolder . '/testfile');
     }
 
-    /**
-     * @expectedException Application_Exception
-     * @expectedExceptionMessage no files for import
-     */
     public function testAddFilesToDocumentNoFiles()
     {
+        $this->expectException(Application_Exception::class);
+        $this->expectExceptionMessage('no files for import');
         $this->model->addFilesToDocument(200, null);
     }
 
-    /**
-     * @expectedException Application_Exception
-     * @expectedExceptionMessage no document found for id 500
-     */
     public function testAddFilesToDocumentUnknownDocument()
     {
+        $this->expectException(Application_Exception::class);
+        $this->expectExceptionMessage('no document found for id 500');
         $this->model->addFilesToDocument(500, ['testfile']);
     }
 
@@ -182,7 +181,7 @@ class Admin_Model_FileImportTest extends ControllerTestCase
     {
         $this->model->setImportFolder($this->importFolder);
 
-        $document = $this->createTestDocument();
+        $document         = $this->createTestDocument();
         $this->documentId = $document->store();
 
         $filePath1 = $this->importFolder . '/test1.txt';
@@ -193,7 +192,7 @@ class Admin_Model_FileImportTest extends ControllerTestCase
 
         $this->model->addFilesToDocument($this->documentId, ['test1.txt', 'test2.txt']);
 
-        $document = new Opus_Document($this->documentId);
+        $document = Document::get($this->documentId);
 
         $files = $document->getFile();
 
@@ -208,7 +207,7 @@ class Admin_Model_FileImportTest extends ControllerTestCase
         // eigentlicher Test
         $this->model->deleteFile($this->documentId, $files[0]->getId());
 
-        $document = new Opus_Document($this->documentId);
+        $document = Document::get($this->documentId);
 
         $files = $document->getFile();
 

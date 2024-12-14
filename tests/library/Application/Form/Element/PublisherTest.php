@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,26 +25,31 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @package     Form_Element
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\DnbInstitute;
+
 class Application_Form_Element_PublisherTest extends FormElementTestCase
 {
-
+    /** @var string */
     protected $additionalResources = 'database';
 
-    public function setUp()
+    public function setUp(): void
     {
-        $this->_formElementClass = 'Application_Form_Element_Publisher';
-        $this->_expectedDecoratorCount = 6;
-        $this->_expectedDecorators = [
-            'ViewHelper', 'Errors', 'Description', 'ElementHtmlTag', 'LabelNotEmpty', 'dataWrapper'
+        $this->formElementClass       = 'Application_Form_Element_Publisher';
+        $this->expectedDecorators     = [
+            'ViewHelper',
+            'Errors',
+            'Description',
+            'ElementHtmlTag',
+            'LabelNotEmpty',
+            'dataWrapper',
+            'ElementHint',
         ];
-        $this->_staticViewHelper = 'viewFormSelect';
+        $this->expectedDecoratorCount = count($this->expectedDecorators);
+        $this->staticViewHelper       = 'viewFormSelect';
         parent::setUp();
     }
 
@@ -51,7 +57,7 @@ class Application_Form_Element_PublisherTest extends FormElementTestCase
     {
         $element = $this->getElement();
 
-        $publishers = Opus_DnbInstitute::getPublishers();
+        $publishers = DnbInstitute::getPublishers();
 
         $this->assertEquals(count($publishers), count($element->getMultiOptions()));
 
@@ -77,8 +83,8 @@ class Application_Form_Element_PublisherTest extends FormElementTestCase
 
         $optionCount = count($element->getMultiOptions());
 
-        $grantors = Opus_DnbInstitute::getGrantors();
-        $publishers = Opus_DnbInstitute::getPublishers();
+        $grantors   = DnbInstitute::getGrantors();
+        $publishers = DnbInstitute::getPublishers();
 
         $nonPublishers = array_diff($grantors, $publishers);
 
@@ -107,7 +113,7 @@ class Application_Form_Element_PublisherTest extends FormElementTestCase
         $optionCount = count($element->getMultiOptions());
 
         // getting unused id for test
-        $institutes = Opus_DnbInstitute::getAll();
+        $institutes = DnbInstitute::getAll();
 
         $instituteIds = array_map(function ($item) {
             return $item->getId();
@@ -129,7 +135,7 @@ class Application_Form_Element_PublisherTest extends FormElementTestCase
     {
         $element = $this->getElement();
 
-        $publishers = Opus_DnbInstitute::getPublishers();
+        $publishers = DnbInstitute::getPublishers();
 
         $this->assertGreaterThan(0, count($publishers));
 

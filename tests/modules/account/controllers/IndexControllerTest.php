@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,12 +25,15 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Tests
- * @package     Account
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Account;
+use Opus\Common\AccountInterface;
+use Opus\Common\Config;
+use Opus\Common\Model\ModelException;
+use Opus\Common\Security\SecurityException;
 
 /**
  * Basic unit tests for account module.
@@ -38,33 +42,39 @@
  */
 class Account_IndexControllerTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['database', 'view', 'mainMenu', 'navigation', 'translation'];
 
+    /** @var AccountInterface */
     private $user;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
         $this->deleteUser('john');
-        $this->user = new Opus_Account();
+        $this->user = Account::new();
         $this->user->setLogin('john');
         $this->user->setPassword('testpwd');
         $this->user->store();
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         $this->user->delete();
         parent::tearDown();
     }
 
+    /**
+     * @param string $username
+     * @throws ModelException
+     */
     private function deleteUser($username)
     {
-        $account = Opus_Account::fetchAccountByLogin($username);
-        if ($account instanceof Opus_Account) {
+        try {
+            $account = Account::fetchAccountByLogin($username);
             $account->delete();
+        } catch (SecurityException $ex) {
         }
     }
 
@@ -73,7 +83,7 @@ class Account_IndexControllerTest extends ControllerTestCase
      */
     public function testIndexSuccessAction()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                          = Config::get();
         $config->account->editOwnAccount = self::CONFIG_VALUE_TRUE;
 
         $this->loginUser('admin', 'adminadmin');
@@ -89,7 +99,7 @@ class Account_IndexControllerTest extends ControllerTestCase
      */
     public function testIndexDeniedIfEditAccountDisabledAction()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                          = Config::get();
         $config->account->editOwnAccount = self::CONFIG_VALUE_FALSE;
 
         $this->loginUser('admin', 'adminadmin');
@@ -109,14 +119,14 @@ class Account_IndexControllerTest extends ControllerTestCase
 
     public function testChangePasswordFailsOnMissingInputAction()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                          = $this->getConfig();
         $config->account->editOwnAccount = self::CONFIG_VALUE_TRUE;
 
         $this->loginUser('john', 'testpwd');
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
-                'password' => 'newpassword'
+                'password' => 'newpassword',
             ]);
         $this->dispatch('/account/index/save');
         $this->assertResponseCode(200);
@@ -125,7 +135,7 @@ class Account_IndexControllerTest extends ControllerTestCase
         $this->assertAction('save');
 
         // Check if change failed...
-        $account = new Opus_Account(null, null, 'john');
+        $account = Account::fetchAccountByLogin('john');
         $this->assertTrue($account->isPasswordCorrect('testpwd'));
         $this->assertFalse($account->isPasswordCorrect('newpassword'));
 
@@ -134,15 +144,15 @@ class Account_IndexControllerTest extends ControllerTestCase
 
     public function testChangePasswordFailsOnNoMatch()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                          = $this->getConfig();
         $config->account->editOwnAccount = self::CONFIG_VALUE_TRUE;
 
         $this->loginUser('john', 'testpwd');
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
-                'password' => 'newpassword',
-                'confirmPassword' => 'anotherpassword'
+                'password'        => 'newpassword',
+                'confirmPassword' => 'anotherpassword',
             ]);
         $this->dispatch('/account/index/save');
         $this->assertResponseCode(200);
@@ -151,7 +161,7 @@ class Account_IndexControllerTest extends ControllerTestCase
         $this->assertAction('save');
 
         // Check if change failed...
-        $account = new Opus_Account(null, null, 'john');
+        $account = Account::fetchAccountByLogin('john');
         $this->assertTrue($account->isPasswordCorrect('testpwd'));
         $this->assertFalse($account->isPasswordCorrect('newpassword'));
 
@@ -163,25 +173,25 @@ class Account_IndexControllerTest extends ControllerTestCase
      */
     public function testChangePasswordSuccess()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                          = $this->getConfig();
         $config->account->editOwnAccount = self::CONFIG_VALUE_TRUE;
 
         $this->loginUser('john', 'testpwd');
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
-                'username' => 'john',
+                'username'  => 'john',
                 'firstname' => '',
-                'lastname' => '',
-                'email' => '',
-                'password' => 'newpassword',
-                'confirm' => 'newpassword'
+                'lastname'  => '',
+                'email'     => '',
+                'password'  => 'newpassword',
+                'confirm'   => 'newpassword',
             ]);
         $this->dispatch('/account/index/save');
         $this->assertRedirect();
 
         // Check if change succeeded...
-        $account = new Opus_Account(null, null, 'john');
+        $account = Account::fetchAccountByLogin('john');
         $this->assertTrue($account->isPasswordCorrect('newpassword'));
 
         $this->assertNotContains('<ul class="errors">', $this->getResponse()->getBody());
@@ -192,25 +202,25 @@ class Account_IndexControllerTest extends ControllerTestCase
      */
     public function testChangePasswordSuccessWithSpecialChars()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                          = $this->getConfig();
         $config->account->editOwnAccount = self::CONFIG_VALUE_TRUE;
 
         $this->loginUser('john', 'testpwd');
-        $this->request
+        $this->getRequest()
             ->setMethod('POST')
             ->setPost([
-                'username' => 'john',
+                'username'  => 'john',
                 'firstname' => '',
-                'lastname' => '',
-                'email' => '',
-                'password' => 'new@pwd$%',
-                'confirm' => 'new@pwd$%'
+                'lastname'  => '',
+                'email'     => '',
+                'password'  => 'new@pwd$%',
+                'confirm'   => 'new@pwd$%',
             ]);
         $this->dispatch('/account/index/save');
         $this->assertRedirect();
 
         // Check if change succeeded...
-        $account = new Opus_Account(null, null, 'john');
+        $account = Account::fetchAccountByLogin('john');
         $this->assertTrue($account->isPasswordCorrect('new@pwd$%'));
 
         $this->assertNotContains('<ul class="errors">', $this->getResponse()->getBody());
@@ -221,7 +231,7 @@ class Account_IndexControllerTest extends ControllerTestCase
      */
     public function testChangeLoginSuccess()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config                          = $this->getConfig();
         $config->account->editOwnAccount = self::CONFIG_VALUE_TRUE;
 
         $this->deleteUser('john2');
@@ -230,25 +240,25 @@ class Account_IndexControllerTest extends ControllerTestCase
         $this->getRequest()
             ->setMethod('POST')
             ->setPost([
-                'username' => 'john2',
+                'username'  => 'john2',
                 'firstname' => '',
-                'lastname' => '',
-                'email' => ''
+                'lastname'  => '',
+                'email'     => '',
             ]);
         $this->dispatch('/account/index/save');
 
         $this->assertRedirect();
 
         // Check if new user exists (with proper password) and old does not...
-        $account = Opus_Account::fetchAccountByLogin('john2');
+        $account = Account::fetchAccountByLogin('john2');
         $this->assertNotNull($account);
         $this->assertTrue($account->isPasswordCorrect('testpwd'));
 
-        $account = Opus_Account::fetchAccountByLogin('john');
-        $this->assertNull($account);
-
         // Delete user 'john2' if we're done...
         $this->deleteUser('john2');
+
+        $this->expectException(SecurityException::class, 'Account with login name \'john\' not found');
+        Account::fetchAccountByLogin('john');
     }
 
     public function testAccessAccountModule()

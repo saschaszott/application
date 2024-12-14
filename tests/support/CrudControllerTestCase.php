@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,38 +25,47 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @package     Test_Support
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2013, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
- * @version     $Id$
  */
+
+use Opus\Common\Model\ModelInterface;
+use Opus\Common\Model\NotFoundException;
 
 abstract class CrudControllerTestCase extends ControllerTestCase
 {
-
+    /** @var int[] */
     private $oldModelIds;
 
+    /** @var string */
     private $module = 'admin';
 
-    private $controller = null;
+    /** @var string */
+    private $controller;
 
+    /** @var string */
     private $controllerPath;
 
+    /** @var bool */
     protected $createsModels;
 
+    /**
+     * @param string $value
+     */
     public function setModule($value)
     {
         $this->module = $value;
     }
 
+    /**
+     * @param string $value
+     */
     public function setController($value)
     {
         $this->controller = $value;
     }
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->controllerPath = '/' . $this->module . '/' . $this->controller;
         parent::setUp();
@@ -71,12 +81,15 @@ abstract class CrudControllerTestCase extends ControllerTestCase
         }
     }
 
+    /**
+     * @return string
+     */
     public function getControllerPath()
     {
         return $this->controllerPath;
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         if ($this->createsModels) {
             $this->deleteNewModels();
@@ -106,7 +119,6 @@ abstract class CrudControllerTestCase extends ControllerTestCase
         $this->assertAction('index');
 
         $models = $this->getModels();
-        ;
 
         $this->assertQuery('a.add', 'Kein Add Button gefunden.');
         if (count($models) > 0) {
@@ -207,6 +219,10 @@ abstract class CrudControllerTestCase extends ControllerTestCase
 
     abstract public function createNewModel();
 
+    /**
+     * @param int|string $identifier
+     * @return ModelInterface
+     */
     abstract public function getModel($identifier);
 
     public function testDeleteActionYes()
@@ -216,15 +232,15 @@ abstract class CrudControllerTestCase extends ControllerTestCase
         $modelId = $this->createNewModel();
 
         $this->getRequest()->setMethod('POST')->setPost([
-            'Id' => $modelId,
-            'ConfirmYes' => 'Ja'
+            'Id'         => $modelId,
+            'ConfirmYes' => 'Ja',
         ]);
 
         $this->dispatch($this->controllerPath . '/delete');
 
         try {
             $this->getModel($modelId);
-        } catch (Opus_Model_NotFoundException $omnfe) {
+        } catch (NotFoundException $omnfe) {
             // alles gut, Modell wurde geloescht
         }
 
@@ -240,8 +256,8 @@ abstract class CrudControllerTestCase extends ControllerTestCase
         $modelId = $this->createNewModel();
 
         $this->getRequest()->setMethod('POST')->setPost([
-            'Id' => $modelId,
-            'ConfirmNo' => 'Nein'
+            'Id'        => $modelId,
+            'ConfirmNo' => 'Nein',
         ]);
 
         $this->dispatch($this->controllerPath . '/delete/id/' . $modelId);

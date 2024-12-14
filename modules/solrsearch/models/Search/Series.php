@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,16 +25,19 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Solrsearch_Model_Search
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2017, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Search\Util\Query;
+
 class Solrsearch_Model_Search_Series extends Solrsearch_Model_Search_Abstract
 {
-
+    /**
+     * @param Zend_Controller_Request_Http $request
+     * @return Query|null
+     * @throws Zend_Exception
+     */
     public function buildQuery($request)
     {
         if (! $this->prepareSeries($request)) {
@@ -43,6 +47,11 @@ class Solrsearch_Model_Search_Series extends Solrsearch_Model_Search_Abstract
         return parent::buildQuery($request);
     }
 
+    /**
+     * @param Zend_Controller_Request_Http $request
+     * @return bool
+     * @throws Zend_Exception
+     */
     public function prepareSeries($request)
     {
         $series = null;
@@ -58,23 +67,30 @@ class Solrsearch_Model_Search_Series extends Solrsearch_Model_Search_Abstract
 
         $view = $this->getView();
 
-        $view->title = $series->getTitle();
-        $view->seriesId = $series->getId();
-        $view->infobox = $series->getInfobox();
+        $view->title        = $series->getTitle();
+        $view->seriesId     = $series->getId();
+        $view->infobox      = $series->getInfobox();
         $view->logoFilename = $series->getLogoFilename();
 
         return true;
     }
 
+    /**
+     * @param array $input
+     * @return Query
+     * @throws Zend_Exception
+     */
     public function createSearchQuery($input)
     {
         $this->getLogger()->debug("Constructing query for series search.");
 
-        $query = new Opus\Search\Util\Query(Opus\Search\Util\Query::SIMPLE);
+        $query = new Query(Query::SIMPLE);
         $query->setStart($input['start']);
         $query->setRows($input['rows']);
-        if ($input['sortField'] === 'seriesnumber'
-            || $input['sortField'] === Opus\Search\Query::getDefaultSortingField()) {
+        if (
+            $input['sortField'] === 'seriesnumber'
+            || $input['sortField'] === Opus\Search\Query::getDefaultSortingField()
+        ) {
             $query->setSortField('doc_sort_order_for_seriesid_' . $input['seriesId']);
         } else {
             $query->setSortField($input['sortField']);
@@ -93,11 +109,18 @@ class Solrsearch_Model_Search_Series extends Solrsearch_Model_Search_Abstract
         return $query;
     }
 
+    /**
+     * @param Zend_Controller_Request_Http $request
+     * @return array
+     * @throws Application_Search_QueryBuilderException
+     * @throws Application_Util_BrowsingParamsException
+     * @throws Zend_Exception
+     */
     public function createQueryBuilderInputFromRequest($request)
     {
         $input = parent::createQueryBuilderInputFromRequest($request);
 
-        $searchParams = new Application_Util_BrowsingParams($request, $this->getLogger());
+        $searchParams      = new Application_Util_BrowsingParams($request, $this->getLogger());
         $input['seriesId'] = $searchParams->getSeriesId();
 
         return $input;

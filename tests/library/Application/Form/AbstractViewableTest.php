@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -23,32 +24,32 @@
  * details. You should have received a copy of the GNU General Public License
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
+ * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
 /**
  * Unit Tests fuer abstrakte Basisklasse für Formulare, die als View angezeigt werden können.
- *
- * @category    Application Unit Test
- * @package     Application_Form
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
- * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 class Application_Form_AbstractViewableTest extends TestCase
 {
-
+    /** @var Application_Form_AbstractViewable */
     private $form;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
         $this->form = $this->getForm();
     }
 
+    /**
+     * @return Application_Form_AbstractViewable
+     */
     private function getForm()
     {
-        return $this->getMockForAbstractClass('Application_Form_AbstractViewable');
+        return $this->getMockForAbstractClass(Application_Form_AbstractViewable::class);
     }
 
     public function testPrepareRenderingAsView()
@@ -83,7 +84,7 @@ class Application_Form_AbstractViewableTest extends TestCase
         $form->addSubForm($subform, 'subformempty');
 
         $subform2 = $this->getForm(); // Nicht leeres Unterformular
-        $element = new Zend_Form_Element_Text('subformtextfull');
+        $element  = new Zend_Form_Element_Text('subformtextfull');
         $element->setValue('Im SubForm mit Text');
         $subform2->addElement($element);
 

@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,15 +25,15 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\UserRole;
+
 class Admin_Form_RoleTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['database'];
 
     public function testCreateForm()
@@ -43,31 +44,35 @@ class Admin_Form_RoleTest extends ControllerTestCase
 
     public function testContructWithRole()
     {
-        $role = Opus_UserRole::fetchByName('guest');
+        $role = UserRole::fetchByName('guest');
         $form = new Admin_Form_Role($role->getId());
         $this->assertEquals('guest', $form->getElementValue(Admin_Form_Role::ELEMENT_NAME));
     }
 
     public function testPopulateFromModel()
     {
-        $role = Opus_UserRole::fetchByName('administrator');
+        $role = UserRole::fetchByName('administrator');
         $form = new Admin_Form_Role();
 
         $form->populateFromModel($role);
         $this->assertEquals('administrator', $form->getElementValue(Admin_Form_Role::ELEMENT_NAME));
     }
 
+    /**
+     * @return array[]
+     */
     public function validRoleNameDataProvider()
     {
         return [
             ['abc'],
             ['abcd'],
             ['t17'],
-            ['ABc']
+            ['ABc'],
         ];
     }
 
     /**
+     * @param string $validName Role name
      * @dataProvider validRoleNameDataProvider
      */
     public function testValidRoleName($validName)
@@ -76,6 +81,9 @@ class Admin_Form_RoleTest extends ControllerTestCase
         $this->assertTrue($form->isValid([Admin_Form_Role::ELEMENT_NAME => $validName]), $validName);
     }
 
+    /**
+     * @return array[]
+     */
     public function invalidRoleNameDataProvider()
     {
         return [
@@ -86,11 +94,12 @@ class Admin_Form_RoleTest extends ControllerTestCase
             ['1234'],
             ['guest'], // already exists
             ['1ab'],
-            ['a-b']
+            ['a-b'],
         ];
     }
 
     /**
+     * @param string $invalidName Role name
      * @dataProvider invalidRoleNameDataProvider
      */
     public function testInvalidRoleName($invalidName)

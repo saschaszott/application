@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -23,31 +24,29 @@
  * details. You should have received a copy of the GNU General Public License
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
+ * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Log\LogService;
+use Opus\Common\Repository;
+use Opus\Db\DatabaseBootstrap;
+use Opus\Search\Plugin\Index;
 
 /**
  * Provide methods to setup and run the application. It also provides a couple of static
  * variables for quicker access to application components like the front controller.
  *
- * @category    Application
- * @package     Application
- * @author      Ralf Claussnitzer (ralf.claussnitzer@slub-dresden.de)
- * @author      Simone Finkbeiner (simone.finkbeiner@ub.uni-stuttgart.de)
- * @author      Jens Schwidder <schwidder@zib.de>
- * @author      Michael Lang <lang@zib.de>
- * @copyright   Copyright (c) 2008-2020, OPUS 4 development team
- * @license     http://www.gnu.org/licenses/gpl.html General Public License
- *
  * TODO unit test bootstrap
+ *
+ * @phpcs:disable PSR2.Methods.MethodDeclaration
  */
-class Application_Bootstrap extends Opus_Bootstrap_Base
+class Application_Bootstrap extends DatabaseBootstrap
 {
-
     /**
      * Setup a front controller instance with error options and module
      * directory.
-     *
-     * @return void
      *
      * TODO rename to _initControllerPlugins
      */
@@ -55,7 +54,7 @@ class Application_Bootstrap extends Opus_Bootstrap_Base
     {
         $this->bootstrap(['frontController']);
 
-        $frontController = $this->getResource('frontController'); // Zend_Controller_Front::getInstance();
+        $frontController = $this->getResource('frontController'); // \Zend_Controller_Front::getInstance();
 
         /*
          * Add a custom front controller plugin for setting up an appropriate
@@ -85,8 +84,8 @@ class Application_Bootstrap extends Opus_Bootstrap_Base
 
         $documentRoute = new Application_Controller_Route_Redirect(
             '^(\d+)/?$',
-            ['module' => 'frontdoor', 'controller' => 'index', 'controller' => 'index', 'docId' => 1],
-            [ 1 => 'docId'],
+            ['module' => 'frontdoor', 'controller' => 'index', 'docId' => 1],
+            [1 => 'docId'],
             'document/%s'
         );
 
@@ -103,13 +102,13 @@ class Application_Bootstrap extends Opus_Bootstrap_Base
 
     /**
      * Configure view with UTF-8 options and ViewRenderer action helper.
-     * The Zend_Layout component also gets initialized here.
+     * The \Zend_Layout component also gets initialized here.
      *
      * @return Zend_View
      */
     protected function _initView()
     {
-        $this->bootstrap(['Configuration','OpusFrontController']);
+        $this->bootstrap(['Configuration', 'OpusFrontController']);
 
         $config = $this->getResource('Configuration');
 
@@ -126,11 +125,12 @@ class Application_Bootstrap extends Opus_Bootstrap_Base
         Zend_Layout::startMvc(
             [
                 'layoutPath' => $layoutpath,
-                'layout' => 'common']
+                'layout'     => 'common',
+            ]
         );
 
         // Initialize view with custom encoding and global view helpers.
-        $view = new Zend_View;
+        $view = new Zend_View();
         $view->setEncoding('UTF-8');
 
         // Set doctype to XHTML1 strict
@@ -161,48 +161,86 @@ class Application_Bootstrap extends Opus_Bootstrap_Base
     }
 
     /**
-     * Setup Zend_Cache for caching application data and register under 'Zend_Cache_Page'.
+     * Set base URL if it has been configured.
      *
-     * @return void
+     * This is useful when running OPUS 4 behind a proxy, so absolute URLs will be resolved correctly.
+     *
+     * @throws Zend_Application_Bootstrap_Exception
+     *
+     * TODO \Zend_Controller_Front::getInstance()->setBaseUrl('/opus4'); TODO is this useful
+     */
+    protected function _initBaseUrl()
+    {
+        $this->bootstrap('View');
+
+        $view   = $this->getResource('View');
+        $config = $this->getResource('Configuration');
+
+        if (isset($config->url)) {
+            $baseUrl = $config->url;
+        }
+
+        if (! empty($baseUrl)) {
+            $urlParts = parse_url($baseUrl);
+
+            // setting server url
+            $helper = $view->getHelper('ServerUrl');
+            if (isset($urlParts['scheme'])) {
+                $helper->setScheme($urlParts['scheme']);
+            }
+            if (isset($urlParts['host'])) {
+                $helper->setHost($urlParts['host']);
+            }
+
+            // setting base url
+            if (isset($urlParts['path'])) {
+                $view->getHelper('BaseUrl')->setBaseUrl($urlParts['path']);
+            }
+        }
+    }
+
+    /**
+     * Setup \Zend_Cache for caching application data and register under '\Zend_Cache_Page'.
      */
     protected function _setupPageCache()
     {
         $config = $this->getResource('Configuration');
 
-        $pagecache = null;
+        $pagecache       = null;
         $frontendOptions = [
-            'lifetime' => 600, // in seconds
+            'lifetime'     => 600, // in seconds
             'debug_header' => false,
             // turning on could slow down caching
             'automatic_serialization' => false,
-            'default_options' => [
-                'cache_with_get_variables' => true,
-                'cache_with_post_variables' => true,
-                'cache_with_session_variables' => true,
-                'cache_with_files_variables' => true,
-                'cache_with_cookie_variables' => true,
-                'make_id_with_get_variables' => true,
-                'make_id_with_post_variables' => true,
+            'default_options'         => [
+                'cache_with_get_variables'       => true,
+                'cache_with_post_variables'      => true,
+                'cache_with_session_variables'   => true,
+                'cache_with_files_variables'     => true,
+                'cache_with_cookie_variables'    => true,
+                'make_id_with_get_variables'     => true,
+                'make_id_with_post_variables'    => true,
                 'make_id_with_session_variables' => true,
-                'make_id_with_files_variables' => true,
-                'make_id_with_cookie_variables' => true,
-                'cache' => true]
+                'make_id_with_files_variables'   => true,
+                'make_id_with_cookie_variables'  => true,
+                'cache'                          => true,
+            ],
         ];
 
         $backendOptions = [
             // Directory where to put the cache files. Must be writeable for application server
-            'cache_dir' => $config->workspacePath . '/cache/'
-            ];
+            'cache_dir' => $config->workspacePath . '/cache/',
+        ];
 
         $pagecache = Zend_Cache::factory('Page', 'File', $frontendOptions, $backendOptions);
         Zend_Registry::set('Zend_Cache_Page', $pagecache);
     }
 
     /**
-     * Setup Zend_Translate with language resources of all existent modules.
+     * Setup \Zend_Translate with language resources of all existent modules.
      *
      * It is assumed that all modules are stored under modules/. The search
-     * pattern Zend_Translate gets configured with is to look for a
+     * pattern \Zend_Translate gets configured with is to look for a
      * folder and file structure similar to:
      *
      * language/
@@ -220,21 +258,21 @@ class Application_Bootstrap extends Opus_Bootstrap_Base
     protected function _initTranslation()
     {
         $this->bootstrap(['Configuration', 'Session', 'Logging', 'ZendCache']);
+        $logService = LogService::getInstance();
+        $logger     = $logService->getLog('translation');
 
-        // TODO temporary hack until LogService refactoring is finished (OPUSVIER-3657)
-        $logger = $this->getTranslationLog('translation');
-
-        if (is_null($logger)) {
+        if ($logger === null) {
             $logger = $this->getResource('logging');
         }
 
         $translate = Application_Translate::getInstance();
         $translate->setOptions([
-            'log' => $logger,
-            'route' => ['en' => 'de'] // TODO make configurable in administration AND/OR generate automatically (all lang -> default)
+            'log'   => $logger,
+            'route' => ['en' => 'de'],
         ]);
+        // TODO make 'route' configurable in administration AND/OR generate automatically (all lang -> default)
 
-        Zend_Registry::set(Application_Translate::REGISTRY_KEY, $translate);
+        Application_Translate::setInstance($translate);
 
         $configHelper = new Application_Configuration();
 
@@ -244,7 +282,7 @@ class Application_Bootstrap extends Opus_Bootstrap_Base
 
         // check if language is supported; if not, use language from locale
         if (! $configHelper->isLanguageSupported($language)) {
-            $locale = new Zend_Locale();
+            $locale   = new Zend_Locale();
             $language = $locale->getLanguage();
             $logger->debug("Current locale = '$language'");
             // check if locale is supported; if not, use default language
@@ -275,7 +313,7 @@ class Application_Bootstrap extends Opus_Bootstrap_Base
     /**
      * Initializes general navigation as configured in navigationModules.xml'
      *
-     * @return void
+     * @return Zend_Navigation
      *
      * TODO possible to cache? performance improvement?
      */
@@ -284,10 +322,10 @@ class Application_Bootstrap extends Opus_Bootstrap_Base
         $this->bootstrap('Logging', 'View');
 
         $log = $this->getResource('Logging');
-        $log->debug('Initializing Zend_Navigation');
+        $log->debug('Initializing \Zend_Navigation');
 
         $navigationConfigFile = APPLICATION_PATH . '/application/configs/navigationModules.xml';
-        $navConfig = new Zend_Config_Xml($navigationConfigFile, 'nav');
+        $navConfig            = new Zend_Config_Xml($navigationConfigFile, 'nav');
 
         $log->debug('Navigation config file is: ' . $navigationConfigFile);
 
@@ -312,27 +350,7 @@ class Application_Bootstrap extends Opus_Bootstrap_Base
     }
 
     /**
-     * Initialisiert Zend_Acl für die Authorization in OPUS.
-     *
-     * TODO use Application_Security_AclProvider
-     */
-    protected function _initAuthz()
-    {
-        $this->bootstrap('Logging', 'Navigation', 'view');
-
-        $config = $this->getResource('configuration');
-
-        if (isset($config->security) && filter_var($config->security, FILTER_VALIDATE_BOOLEAN)) {
-            Application_Security_AclProvider::init();
-        } else {
-            Zend_View_Helper_Navigation_HelperAbstract::setDefaultAcl(null);
-            Zend_View_Helper_Navigation_HelperAbstract::setDefaultRole(null);
-        }
-    }
-
-    /**
      * Initializes navigation container for main menu.
-     * @return Zend_Navigation
      */
     protected function _initMainMenu()
     {
@@ -348,7 +366,7 @@ class Application_Bootstrap extends Opus_Bootstrap_Base
 
         $view->navigationMainMenu = $container;
 
-        // TODO Find better way without Zend_Registry
+        // TODO Find better way without \Zend_Registry
         Zend_Registry::set('Opus_Navigation', $container);
 
         // return $container;
@@ -387,27 +405,9 @@ class Application_Bootstrap extends Opus_Bootstrap_Base
 
     protected function _initIndexPlugin()
     {
-        \Opus_Model_Xml_Cache::setIndexPluginClass('Opus\Search\Plugin\Index');
-    }
+        $cache = Repository::getInstance()->getDocumentXmlCache();
 
-    /**
-     * TODO this function should be remove once OPUSVIER-3657 is done
-     * TODO log should be created using LogService
-     * TOOD log needs to include unique ID from main log
-     */
-    protected function getTranslationLog($name)
-    {
-        $config = $this->getResource('configuration');
-
-        if (isset($config->workspacePath)) {
-            $filePath = $config->workspacePath . DIRECTORY_SEPARATOR . 'log' . DIRECTORY_SEPARATOR . "$name.log";
-            $logfile = @fopen($filePath, 'a', false);
-            $writer = new Zend_Log_Writer_Stream($logfile);
-            $formatter = new Zend_Log_Formatter_Simple('%timestamp%: %message%' . PHP_EOL);
-            $writer->setFormatter($formatter);
-            return new Zend_Log($writer);
-        }
-
-        return null;
+        // TODO this is a dependency on a specific implementation (refactor to remove)
+        $cache::setIndexPluginClass(Index::class);
     }
 }

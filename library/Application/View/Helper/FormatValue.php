@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,12 +25,15 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     View
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Date;
+use Opus\Common\DnbInstitute;
+use Opus\Common\LoggingTrait;
+use Opus\Common\Model\FieldInterface;
+use Opus\Common\Model\ModelInterface;
 
 /**
  * View Helper for formatting field values.
@@ -41,33 +45,35 @@
  */
 class Application_View_Helper_FormatValue extends Zend_View_Helper_Abstract
 {
-
-    use \Opus\LoggingTrait;
+    use LoggingTrait;
 
     /**
      * Controller helper for translations.
+     *
      * @var Application_Controller_Action_Helper_Translation
      */
-    private $_translation;
+    private $translation;
 
     /**
      * Controller helper for handling of dates.
+     *
      * @var Application_Controller_Action_Helper_Dates
      */
-    private $_dates;
+    private $dates;
 
     /**
      * Constructs Application_View_Helper_FormatValue.
      */
     public function __construct()
     {
-        $this->_translation = Zend_Controller_Action_HelperBroker::getStaticHelper('Translation');
-        $this->_dates = Zend_Controller_Action_HelperBroker::getStaticHelper('Dates');
+        $this->translation = Zend_Controller_Action_HelperBroker::getStaticHelper('Translation');
+        $this->dates       = Zend_Controller_Action_HelperBroker::getStaticHelper('Dates');
     }
 
     /**
      * Returns instance of the view helper.
-     * @return Application_View_Helper_FormatValue
+     *
+     * @return $this
      */
     public function formatValue()
     {
@@ -75,14 +81,15 @@ class Application_View_Helper_FormatValue extends Zend_View_Helper_Abstract
     }
 
     /**
-     * Formats value that is instance of Opus_Model_Abstract.
-     * @param Opus_Model_Abstract $field
-     * @param string Name of model for field (default = null)
+     * Formats value that is instance of AbstractModel.
+     *
+     * @param FieldInterface $field
+     * @param string|null    $model
      * @return string Formatted output
      */
     public function formatModel($field, $model = null)
     {
-        if ($field instanceof Opus_Date) {
+        if ($field instanceof Date) {
             return $this->formatDate($field);
         } else {
             $modelClass = $field->getValueModelClass();
@@ -91,9 +98,9 @@ class Application_View_Helper_FormatValue extends Zend_View_Helper_Abstract
 
             if (! empty($modelClass)) {
                 switch ($modelClass) {
-                    case 'Opus_Date':
+                    case Date::class:
                         return $this->formatDate($field->getValue());
-                    case 'Opus_DnbInstitute':
+                    case DnbInstitute::class:
                         $value = $field->getValue();
                         if (isset($value[0])) {
                             return $value[0]->getName();
@@ -115,7 +122,7 @@ class Application_View_Helper_FormatValue extends Zend_View_Helper_Abstract
                     return $this->view->translateLanguage($value);
                 } elseif ($field->isSelection()) {
                     Application_Form_Element_Language::getLanguageList(); // initializes language list translations
-                    $key = $this->_translation->getKeyForValue($model, $field->getName(), $value);
+                    $key = $this->translation->getKeyForValue($model, $field->getName(), $value);
                     return $this->view->translate($key);
                 } elseif ($field->isCheckbox()) {
                     if ($value) {
@@ -132,24 +139,25 @@ class Application_View_Helper_FormatValue extends Zend_View_Helper_Abstract
     }
 
     /**
-     * Returns Opus_Date values formatted as string.
-     * @param Opus_Date $date
+     * Returns Date values formatted as string.
+     *
+     * @param Date $date
      * @return string Formatted date
      */
     public function formatDate($date)
     {
-        if (! ($date instanceof Opus_Date)) {
+        if (! $date instanceof Date) {
             return $date;
         } else {
-            return $this->_dates->getDateString($date);
+            return $this->dates->getDateString($date);
         }
     }
 
     /**
      * Formats value for output on metadata overview page.
      *
-     * @param Field value
-     * @param string Name of model for field
+     * @param mixed       $value
+     * @param string|null $model
      * @return string Formatted output
      *
      * TODO some values need to be translated (others don't)
@@ -159,10 +167,10 @@ class Application_View_Helper_FormatValue extends Zend_View_Helper_Abstract
      */
     public function format($value, $model = null)
     {
-        if ($value instanceof Opus_Model_Abstract) {
+        if ($value instanceof ModelInterface) {
             return $this->formatModel($value, $model);
         }
-        if ($value instanceof Opus_Model_Field) {
+        if ($value instanceof FieldInterface) {
             return $this->formatModel($value, $model);
         } else {
             $this->getLogger()->debug('Formatting ' . $value);

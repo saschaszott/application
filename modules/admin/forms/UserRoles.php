@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,25 +25,25 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Module_Admin
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2010, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
- * @version     $Id$
  */
+
+use Opus\Common\AccountInterface;
+use Opus\Common\UserRole;
 
 /**
  * Abstract class for supporting editing of Opus roles in form.
  */
 class Admin_Form_UserRoles extends Application_Form_Model_Abstract
 {
+    public const ELEMENT_ROLES = 'roles';
 
-    const ELEMENT_ROLES = 'roles';
+    /** @var string */
+    protected $roleGroupLegendKey = 'admin_form_group_roles';
 
-    protected $_roleGroupLegendKey = 'admin_form_group_roles';
-
-    protected $_alwaysCheckAndDisableGuest = true;
+    /** @var bool */
+    protected $alwaysCheckAndDisableGuest = true;
 
     public function init()
     {
@@ -50,7 +51,7 @@ class Admin_Form_UserRoles extends Application_Form_Model_Abstract
 
         $this->setDecorators([
             'FormElements',
-            'fieldset'
+            'fieldset',
         ]);
 
         $this->removeElement(self::ELEMENT_MODEL_ID);
@@ -60,7 +61,7 @@ class Admin_Form_UserRoles extends Application_Form_Model_Abstract
 
         $this->addRoleElements();
 
-        $this->setLegend($this->_roleGroupLegendKey);
+        $this->setLegend($this->roleGroupLegendKey);
     }
 
     /**
@@ -68,10 +69,10 @@ class Admin_Form_UserRoles extends Application_Form_Model_Abstract
      */
     protected function addRoleElements()
     {
-        $roles = Opus_UserRole::getAll();
+        $roles = UserRole::getAll();
 
         foreach ($roles as $role) {
-            $roleName = $role->getDisplayName();
+            $roleName     = $role->getDisplayName();
             $roleCheckbox = $this->createElement(
                 'checkbox',
                 $roleName
@@ -81,7 +82,7 @@ class Admin_Form_UserRoles extends Application_Form_Model_Abstract
         }
 
         // TODO special code to handle role 'guest': Is that good?
-        if ($this->_alwaysCheckAndDisableGuest) {
+        if ($this->alwaysCheckAndDisableGuest) {
             $guest = $this->getElement('guest');
             $guest->setValue(1);
             $guest->setAttrib('disabled', true);
@@ -90,12 +91,13 @@ class Admin_Form_UserRoles extends Application_Form_Model_Abstract
 
     /**
      * Initialisiert das Formular mit Werten einer Model-Instanz.
-     * @param $model Opus_Account
+     *
+     * @param AccountInterface $model
      */
     public function populateFromModel($model)
     {
-        if (! $model instanceof Opus_Account) {
-            throw new Exception('Model must be of type Opus_Account');
+        if (! $model instanceof AccountInterface) {
+            throw new Exception('Model must implement AccountInterface');
         }
 
         $this->clearAll();
@@ -121,13 +123,14 @@ class Admin_Form_UserRoles extends Application_Form_Model_Abstract
             $element->setValue(0);
         }
 
-        if ($this->_alwaysCheckAndDisableGuest) {
+        if ($this->alwaysCheckAndDisableGuest) {
             $this->getElement('guest')->setValue(1);
         }
     }
 
     /**
      * Returns names of selected user roles.
+     *
      * @return array
      */
     public function getSelectedRoles()
@@ -135,7 +138,7 @@ class Admin_Form_UserRoles extends Application_Form_Model_Abstract
         $selected = [];
 
         foreach ($this->getElements() as $element) {
-            if ($element->getValue() == 1) {
+            if ($element instanceof Zend_Form_Element_Checkbox && $element->isChecked()) {
                 $selected[] = $element->getName();
             }
         }
@@ -145,11 +148,12 @@ class Admin_Form_UserRoles extends Application_Form_Model_Abstract
 
     /**
      * Aktualsiert Model-Instanz mit Werten im Formular.
-     * @param $model
+     *
+     * @param AccountInterface $account
      */
     public function updateModel($account)
     {
-        if (! $account instanceof Opus_Account) {
+        if (! $account instanceof AccountInterface) {
             throw new Exception('Model must be of type Opus_Account');
         }
 
@@ -160,11 +164,11 @@ class Admin_Form_UserRoles extends Application_Form_Model_Abstract
         $roles = [];
 
         foreach ($selected as $name) {
-            $role = Opus_UserRole::fetchByName($name);
+            $role    = UserRole::fetchByName($name);
             $roles[] = $role;
         }
 
-        $adminRole = Opus_UserRole::fetchByName('administrator');
+        $adminRole = UserRole::fetchByName('administrator');
 
         if ($currentUser === $account->getLogin() && in_array($account->getId(), $adminRole->getAllAccountIds())) {
             $roles[] = $adminRole;

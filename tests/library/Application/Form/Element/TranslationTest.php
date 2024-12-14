@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -23,20 +24,19 @@
  * details. You should have received a copy of the GNU General Public License
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- */
-
-/**
- * Unit tests for translation form element.
  *
- * @category    Application Unit Test
- * @package     Form_Element
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2019, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Translate\Dao;
+
+/**
+ * Unit tests for translation form element.
+ */
 class Application_Form_Element_TranslationTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['translation', 'view'];
 
     public function testConstruct()
@@ -75,7 +75,7 @@ class Application_Form_Element_TranslationTest extends ControllerTestCase
 
         $key = 'testkey';
 
-        $dao = new Opus_Translate_Dao();
+        $dao = new Dao();
 
         $dao->remove($key);
 
@@ -83,7 +83,7 @@ class Application_Form_Element_TranslationTest extends ControllerTestCase
 
         $data = [
             'en' => 'test key',
-            'de' => 'Testschlüssel'
+            'de' => 'Testschlüssel',
         ];
 
         $element->setValue($data);
@@ -99,8 +99,8 @@ class Application_Form_Element_TranslationTest extends ControllerTestCase
 
         $element = new Application_Form_Element_Translation('DisplayName');
 
-        $translate = Zend_Registry::get('Zend_Translate');
-        $dao = new Opus_Translate_Dao();
+        $translate = Application_Translate::getInstance();
+        $dao       = new Dao();
 
         $dao->remove($key);
 
@@ -121,7 +121,7 @@ class Application_Form_Element_TranslationTest extends ControllerTestCase
 
         $this->assertTrue($element->isValid([
             'en' => 'English',
-            'de' => 'Englisch'
+            'de' => 'Englisch',
         ]));
     }
 
@@ -131,7 +131,7 @@ class Application_Form_Element_TranslationTest extends ControllerTestCase
 
         $this->assertTrue($element->isValid([
             'en' => '',
-            'de' => ''
+            'de' => '',
         ]));
     }
 
@@ -141,7 +141,7 @@ class Application_Form_Element_TranslationTest extends ControllerTestCase
 
         $value = [
             'en' => 'test key',
-            'de' => 'Testschlüssel'
+            'de' => 'Testschlüssel',
         ];
 
         $element->setValue($value);
@@ -155,7 +155,7 @@ class Application_Form_Element_TranslationTest extends ControllerTestCase
 
         $value = [
             'en' => 'test key',
-            'de' => 'Testschlüssel'
+            'de' => 'Testschlüssel',
         ];
 
         $element->setValue($value);
@@ -167,14 +167,14 @@ class Application_Form_Element_TranslationTest extends ControllerTestCase
     {
         $element = new Application_Form_Element_Translation('Content');
 
-        $dao = new Opus_Translate_Dao();
+        $dao = new Dao();
         $dao->removeAll();
 
         $key = 'help_content_contact';
 
         $data = [
             'en' => 'Content',
-            'de' => 'Inhalt'
+            'de' => 'Inhalt',
         ];
 
         $element->setValue($data);
@@ -207,5 +207,39 @@ class Application_Form_Element_TranslationTest extends ControllerTestCase
         // do not translate 'Institute' into 'Institut'
         $this->assertNotContains('id="DisplayName-de" value="Institut"', $output);
         $this->assertContains('id="DisplayName-de" value="Institute"', $output);
+    }
+
+    public function testUpdateTranslationForDuplicateKey()
+    {
+        $database = new Dao();
+        $database->removeAll();
+
+        $key = 'duplicateTestKey';
+
+        $database->setTranslation($key, [
+            'en' => 'AdminEn',
+            'de' => 'AdminDe',
+        ], 'admin');
+
+        $database->setTranslation($key, [
+            'en' => 'HomeEn',
+            'de' => 'HomeDe',
+        ], 'home');
+
+        $element = new Application_Form_Element_Translation('DuplicateTest');
+
+        $data = [
+            'en' => 'NewEn',
+            'de' => 'NewDe',
+        ];
+
+        $element->setValue($data);
+
+        $element->updateTranslations($key);
+
+        $translations = $database->getTranslationsWithModules();
+
+        // var_dump($translations);
+        $this->markTestIncomplete('no assertions');
     }
 }

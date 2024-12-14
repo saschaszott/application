@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,21 +25,27 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Tests
- * @package     Application_Update
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2020, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Translate\Dao;
+
 class Application_Update_ImportHelpFilesTest extends ControllerTestCase
 {
-
+    /** @var string */
     protected $additionalResources = 'translation';
+
+    public function tearDown(): void
+    {
+        $database = $this->getStorageInterface();
+        $database->removeAll();
+        parent::tearDown();
+    }
 
     public function testRun()
     {
-        $database = new Opus_Translate_Dao();
+        $database = $this->getStorageInterface();
         $database->removeAll();
 
         $update = new Application_Update_ImportHelpFiles();
@@ -54,18 +61,18 @@ class Application_Update_ImportHelpFilesTest extends ControllerTestCase
 
     public function testRunWithModifiedTranslation()
     {
-        $database = new Opus_Translate_Dao();
+        $database = $this->getStorageInterface();
         $database->removeAll();
 
         $folder = $this->createTestFolder();
 
         $database->setTranslation('help_content_searchtipps', [
             'en' => 'searchtipps.en.txt',
-            'de' => 'searchtipps.de.txt'
+            'de' => 'searchtipps.de.txt',
         ], 'home');
 
         $helpFiles = new Home_Model_HelpFiles();
-        $helpPath = $helpFiles->getHelpPath();
+        $helpPath  = $helpFiles->getHelpPath();
 
         $this->copyFiles($helpPath, $folder);
 
@@ -92,27 +99,27 @@ class Application_Update_ImportHelpFilesTest extends ControllerTestCase
 
     public function testRunForCustomizedHelpFiles()
     {
-        $database = new Opus_Translate_Dao();
+        $database = $this->getStorageInterface();
         $database->removeAll();
 
         $helpPath = $this->createTestFolder();
 
         $generalDe = $this->createTestFile('general.de.txt', 'Allgemein', $helpPath);
         $generalEn = $this->createTestFile('general.en.txt', 'General', $helpPath);
-        $miscDe = $this->createTestFile('misc.de.txt', 'Sonstiges', $helpPath);
-        $miscEn = $this->createTestFile('misc.en.txt', 'Miscellaneous', $helpPath);
+        $miscDe    = $this->createTestFile('misc.de.txt', 'Sonstiges', $helpPath);
+        $miscEn    = $this->createTestFile('misc.en.txt', 'Miscellaneous', $helpPath);
 
-        $helpConfig = 'help_index_general[] = \'general\'' . PHP_EOL;
+        $helpConfig  = 'help_index_general[] = \'general\'' . PHP_EOL;
         $helpConfig .= 'help_index_misc[] = \'misc\'' . PHP_EOL;
-        $helpIni = $this->createTestFile('help.ini', $helpConfig, $helpPath);
+        $helpIni     = $this->createTestFile('help.ini', $helpConfig, $helpPath);
 
         $database->setTranslation('help_content_general', [
             'en' => 'general.en.txt',
-            'de' => 'general.de.txt'
+            'de' => 'general.de.txt',
         ], 'help');
         $database->setTranslation('help_content_misc', [
             'en' => 'misc.en.txt',
-            'de' => 'misc.de.txt'
+            'de' => 'misc.de.txt',
         ], 'help');
 
         $update = new Application_Update_ImportHelpFiles();
@@ -136,13 +143,13 @@ class Application_Update_ImportHelpFilesTest extends ControllerTestCase
         $translations = $database->getTranslation('help_content_general');
         $this->assertEquals([
             'en' => 'General',
-            'de' => 'Allgemein'
+            'de' => 'Allgemein',
         ], $translations);
 
         $translations = $database->getTranslation('help_content_misc');
         $this->assertEquals([
             'en' => 'Miscellaneous',
-            'de' => 'Sonstiges'
+            'de' => 'Sonstiges',
         ], $translations);
     }
 
@@ -152,24 +159,24 @@ class Application_Update_ImportHelpFilesTest extends ControllerTestCase
         $update->setRemoveFilesEnabled(false);
         $update->setQuietMode(true);
 
-        $database = new Opus_Translate_Dao();
+        $database = $this->getStorageInterface();
         $database->removeAll();
 
         $database->setTranslation('help_content_misc', [
             'en' => 'MiscContentEn',
-            'de' => 'MiscContentDe'
+            'de' => 'MiscContentDe',
         ], 'home');
         $database->setTranslation('help_index_misc', [
             'en' => 'MiscIndexEn',
-            'de' => 'MiscIndexDe'
+            'de' => 'MiscIndexDe',
         ], 'home');
         $database->setTranslation('help_content_imprint', [
             'en' => 'ImprintContentEn',
-            'de' => 'ImprintContentDe'
+            'de' => 'ImprintContentDe',
         ], 'home');
         $database->setTranslation('help_content_contact', [
             'en' => 'ContactContentEn',
-            'de' => 'ContactContentDe'
+            'de' => 'ContactContentDe',
         ], 'home');
 
         $update->moveKeysToHelp();
@@ -192,12 +199,12 @@ class Application_Update_ImportHelpFilesTest extends ControllerTestCase
         $update->setRemoveFilesEnabled(false);
         $update->setQuietMode(true);
 
-        $database = new Opus_Translate_Dao();
+        $database = $this->getStorageInterface();
         $database->removeAll();
 
         $database->setTranslation('help_content_metadata', [
             'en' => 'MetadataContentEn',
-            'de' => 'MetadataContentDe'
+            'de' => 'MetadataContentDe',
         ], 'home');
 
         $update->moveKeysToHelp();
@@ -211,9 +218,9 @@ class Application_Update_ImportHelpFilesTest extends ControllerTestCase
 
     public function testGetHelpFiles()
     {
-        $contactFile = 'contact'; // contact files should be ignored
-        $imprintFile = 'imprint'; // imprint files should be ignored
-        $infoFile = 'info'; // info files (EN und DE) should be imported
+        $contactFile  = 'contact'; // contact files should be ignored
+        $imprintFile  = 'imprint'; // imprint files should be ignored
+        $infoFile     = 'info'; // info files (EN und DE) should be imported
         $searchFileEn = 'search.en.txt'; // lang files for key 'help_content_search' have different basenames
         $searchFileDe = 'suche.de.txt';
 
@@ -232,29 +239,29 @@ class Application_Update_ImportHelpFilesTest extends ControllerTestCase
         $this->createTestFile($searchFileEn, 'search EN', $folder);
 
         // setup help.ini
-        $help = 'help_index_general[] = \'search\'' . PHP_EOL;
-        $help .= 'help_index_authorhelp[] = \'contact\'' . PHP_EOL;
-        $help .= 'help_index_misc[] = \'imprint\'' . PHP_EOL;
-        $help .= 'help_index_misc[] = \'info\'' . PHP_EOL;
+        $help    = 'help_index_general[] = \'search\'' . PHP_EOL;
+        $help   .= 'help_index_authorhelp[] = \'contact\'' . PHP_EOL;
+        $help   .= 'help_index_misc[] = \'imprint\'' . PHP_EOL;
+        $help   .= 'help_index_misc[] = \'info\'' . PHP_EOL;
         $helpIni = $this->createTestFile('help.ini', $help, $folder);
 
         // setup translations
-        $database = new Opus_Translate_Dao();
+        $database = $this->getStorageInterface();
         $database->setTranslation('help_content_contact', [
             'en' => "$contactFile.en.txt",
-            'de' => "$contactFile.de.txt"
+            'de' => "$contactFile.de.txt",
         ], 'help');
         $database->setTranslation('help_content_imprint', [
             'en' => "$imprintFile.en.txt",
-            'de' => "$imprintFile.de.txt"
+            'de' => "$imprintFile.de.txt",
         ], 'help');
         $database->setTranslation('help_content_info', [
             'en' => "$infoFile.en.txt",
-            'de' => "$infoFile.de.txt"
+            'de' => "$infoFile.de.txt",
         ], 'help');
         $database->setTranslation('help_content_search', [
             'en' => $searchFileEn,
-            'de' => $searchFileDe
+            'de' => $searchFileDe,
         ], 'help');
 
         $update = new Application_Update_ImportHelpFiles();
@@ -268,22 +275,22 @@ class Application_Update_ImportHelpFilesTest extends ControllerTestCase
         $this->assertArrayHasKey('help_content_contact', $files);
         $this->assertEquals([
             'en' => "$contactFile.en.txt",
-            'de' => "$contactFile.de.txt"
+            'de' => "$contactFile.de.txt",
         ], $files['help_content_contact']);
         $this->assertArrayHasKey('help_content_imprint', $files);
         $this->assertEquals([
             'en' => "$imprintFile.en.txt",
-            'de' => "$imprintFile.de.txt"
+            'de' => "$imprintFile.de.txt",
         ], $files['help_content_imprint']);
         $this->assertArrayHasKey('help_content_info', $files);
         $this->assertEquals([
             'en' => "$infoFile.en.txt",
-            'de' => "$infoFile.de.txt"
+            'de' => "$infoFile.de.txt",
         ], $files['help_content_info']);
         $this->assertArrayHasKey('help_content_search', $files);
         $this->assertEquals([
             'en' => $searchFileEn,
-            'de' => $searchFileDe
+            'de' => $searchFileDe,
         ], $files['help_content_search']);
     }
 
@@ -292,11 +299,11 @@ class Application_Update_ImportHelpFilesTest extends ControllerTestCase
      */
     public function testGetHelpFilesForDefaultSetup()
     {
-        $database = new Opus_Translate_Dao();
+        $database = $this->getStorageInterface();
         $database->removeAll();
 
         $update = new Application_Update_ImportHelpFiles();
-        $files = $update->getHelpFiles();
+        $files  = $update->getHelpFiles();
 
         $helpPath = $update->getHelpPath();
 
@@ -316,23 +323,23 @@ class Application_Update_ImportHelpFilesTest extends ControllerTestCase
      */
     public function testImportChangedHelpFilesWithoutCustomizedKeys()
     {
-        $database = new Opus_Translate_Dao();
+        $database = $this->getStorageInterface();
         $database->removeAll();
 
         $helpPath = $this->createTestFolder();
 
-        $generalDe = $this->createTestFile('general.de.txt', 'Allgemein', $helpPath);
-        $generalEn = $this->createTestFile('general.en.txt', 'General', $helpPath);
+        $generalDe  = $this->createTestFile('general.de.txt', 'Allgemein', $helpPath);
+        $generalEn  = $this->createTestFile('general.en.txt', 'General', $helpPath);
         $policiesDe = $this->createTestFile('policies.de.txt', 'Leitlinien', $helpPath);
         $policiesEn = $this->createTestFile('policies.en.txt', 'Policies', $helpPath);
 
-        $helpConfig = 'help_index_general[] = \'general\'' . PHP_EOL;
+        $helpConfig  = 'help_index_general[] = \'general\'' . PHP_EOL;
         $helpConfig .= 'help_index_misc[] = \'policies\'' . PHP_EOL;
-        $helpIni = $this->createTestFile('help.ini', $helpConfig, $helpPath);
+        $helpIni     = $this->createTestFile('help.ini', $helpConfig, $helpPath);
 
         $database->setTranslation('help_content_general', [
             'en' => 'general.en.txt',
-            'de' => 'general.de.txt'
+            'de' => 'general.de.txt',
         ], 'help');
         // no custom key for `help_content_policies`
 
@@ -357,13 +364,13 @@ class Application_Update_ImportHelpFilesTest extends ControllerTestCase
         $translations = $database->getTranslation('help_content_general');
         $this->assertEquals([
             'en' => 'General',
-            'de' => 'Allgemein'
+            'de' => 'Allgemein',
         ], $translations);
 
         $translations = $database->getTranslation('help_content_policies');
         $this->assertEquals([
             'en' => 'Policies',
-            'de' => 'Leitlinien'
+            'de' => 'Leitlinien',
         ], $translations);
     }
 
@@ -373,23 +380,23 @@ class Application_Update_ImportHelpFilesTest extends ControllerTestCase
      */
     public function testTmxContentMatchesHelpFiles()
     {
-        $database = new Opus_Translate_Dao();
+        $database = $this->getStorageInterface();
         $database->removeAll();
 
         $update = new Application_Update_ImportHelpFiles();
         $update->setRemoveFilesEnabled(false);
         $update->setQuietMode(true);
 
-        $files = $update->getHelpFiles();
+        $files    = $update->getHelpFiles();
         $helpPath = $update->getHelpPath();
-        $prefix = 'help_content_';
+        $prefix   = 'help_content_';
 
         foreach ($files as $key => $translations) {
             foreach ($translations as $lang => $value) {
-                if (substr($key, 0, strlen($prefix)) == $prefix) {
+                if (substr($key, 0, strlen($prefix)) === $prefix) {
                     $baseName = substr($key, strlen($prefix));
                     $fileName = "$baseName.{$lang}.txt";
-                    $path = $helpPath . $fileName;
+                    $path     = $helpPath . $fileName;
                     if (is_readable($path)) {
                         $fileContent = trim(file_get_contents($path));
                     }
@@ -397,5 +404,13 @@ class Application_Update_ImportHelpFilesTest extends ControllerTestCase
                 $this->assertEquals($fileContent, $value, "File and TMX for '$key' in '$lang' do not match.");
             }
         }
+    }
+
+    /**
+     * @return Dao
+     */
+    protected function getStorageInterface()
+    {
+        return new Dao();
     }
 }

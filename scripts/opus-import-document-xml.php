@@ -26,15 +26,14 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @author      Thoralf Klein <thoralf.klein@zib.de>
  * @copyright   Copyright (c) 2011, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
- * @version     $Id$
  */
 
 // Bootstrapping
 require_once dirname(__FILE__) . '/common/bootstrap.php';
+
+use Opus\Common\Document;
 
 // Remove first argument
 array_shift($argv);
@@ -46,7 +45,7 @@ foreach ($argv as $filename) {
     error_log("loading filename $filename...");
     $content = file_get_contents($filename);
 
-    $doc = Opus_Document::fromXml($content);
+    $doc   = Document::fromXml($content);
     $docId = $doc->store();
     error_log("loading filename $filename... done.  Document $docId.");
 }

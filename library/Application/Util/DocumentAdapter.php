@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,16 +25,19 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Util
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2013, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
- * @version     $Id$
  */
 
+use Opus\Common\Account;
+use Opus\Common\Date;
+use Opus\Common\Document;
+use Opus\Common\DocumentInterface;
+use Opus\Common\Model\ModelException;
+use Opus\Common\Model\NotFoundException;
+
 /**
- * Wrapper around Opus_Document to prepare presentation.
+ * Wrapper around Document to prepare presentation.
  *
  * TODO split off base class, URLs are controller specific
  * TODO move code to admin module (is used there as well and belongs there, or?)
@@ -42,56 +46,61 @@
  */
 class Application_Util_DocumentAdapter
 {
-
     /**
      * Document identifier.
+     *
      * @var int
      */
-    public $docId = null;
+    public $docId;
 
     /**
      * Wrapped document.
-     * @var Opus_Document
+     *
+     * @var DocumentInterface
      */
-    public $document = null;
+    public $document;
 
     /**
      * Zend_View for presentation.
+     *
      * @var Zend_View
      */
-    private $_view;
+    private $view;
 
     /**
      * Array of author names.
+     *
      * @var array
      */
-    private $_authors = null;
+    private $authors;
 
     /**
      * Constructs wrapper around document.
-     * @param Zend_View $view
-     * @param int $id
+     *
+     * @param Zend_View_Interface   $view
+     * @param int|DocumentInterface $value
      */
     public function __construct($view, $value)
     {
-        if (is_null($view)) {
-            $this->_view = Zend_Registry::get('Opus_View');
+        if ($view !== null) {
+            $this->view = Zend_Registry::get('Opus_View');
         } else {
-            $this->_view = $view;
+            $this->view = $view;
         }
 
-        if ($value instanceof Opus_Document) {
+        if ($value instanceof DocumentInterface) {
             $this->document = $value;
-            $this->docId = $this->document->getId();
+            $this->docId    = $this->document->getId();
         } else {
-            $this->docId = $value;
-            $this->document = new Opus_Document((int) $value);
+            $this->docId    = $value;
+            $this->document = Document::get((int) $value);
         }
     }
 
     /**
-     * Returns the Opus_Document object for this adapter.
-     * @return Opus_Document
+     * Returns the Document object for this adapter.
+     *
+     * @return DocumentInterface
      */
     public function getDocument()
     {
@@ -100,15 +109,17 @@ class Application_Util_DocumentAdapter
 
     /**
      * Returns document identifier.
-     * @return int
+     *
+     * @return string
      */
     public function getDocId()
     {
-        return htmlspecialchars($this->docId);
+        return $this->docId !== null ? htmlspecialchars($this->docId) : '';
     }
 
     /**
      * Returns state of document or 'undefined'.
+     *
      * @return string
      */
     public function getState()
@@ -122,6 +133,7 @@ class Application_Util_DocumentAdapter
 
     /**
      * Returns first title for document.
+     *
      * @return string
      */
     public function getDocTitle()
@@ -130,19 +142,21 @@ class Application_Util_DocumentAdapter
         if (count($titles) > 0) {
             return $titles[0]->getValue();
         } else {
-            return $this->_view->translate('results_missingtitle') . ' (id = ' . $this->getDocId() . ')';
+            return $this->view->translate('results_missingtitle') . ' (id = ' . $this->getDocId() . ')';
         }
     }
 
     /**
      * Returns title in document language.
+     *
+     * @return string
      */
     public function getMainTitle()
     {
         $title = $this->document->getMainTitle();
 
-        if (is_null($title)) {
-            return $this->_view->translate('results_missingtitle') . " (id = '{$this->getDocId()}')";
+        if ($title === null) {
+            return $this->view->translate('results_missingtitle') . " (id = '{$this->getDocId()}')";
         } else {
             return $title->getValue();
         }
@@ -150,12 +164,13 @@ class Application_Util_DocumentAdapter
 
     /**
      * Returns document type.
+     *
      * @return string
      */
     public function getDocType()
     {
         try {
-            return htmlspecialchars($this->document->getType());
+            return htmlspecialchars($this->document->getType() ?? '');
         } catch (Exception $e) {
             return 'undefined';
         }
@@ -165,6 +180,9 @@ class Application_Util_DocumentAdapter
      * Return published date.
      *
      * TODO or should it be getPublishedYear (?)
+     *
+     * @param bool $yearOnly
+     * @return string
      */
     public function getPublishedDate($yearOnly = false)
     {
@@ -177,19 +195,23 @@ class Application_Util_DocumentAdapter
                 $date = $this->document->getPublishedYear();
             }
 
-            if (! empty($date) && $date instanceof Opus_Date) {
+            if (! empty($date) && $date instanceof Date) {
                 if ($yearOnly) {
                     $date = $date->getYear();
                 } else {
                     $date = $datesHelper->getDateString($date);
                 }
             }
-            return htmlspecialchars($date);
+            return htmlspecialchars($date ?? '');
         } catch (Exception $e) {
             return 'unknown';
         }
     }
 
+    /**
+     * @param bool $yearOnly
+     * @return string
+     */
     public function getCompletedDate($yearOnly = false)
     {
         $datesHelper = Zend_Controller_Action_HelperBroker::getStaticHelper('Dates');
@@ -201,7 +223,7 @@ class Application_Util_DocumentAdapter
                 $date = $this->document->getCompletedYear();
             }
 
-            if (! empty($date) && $date instanceof Opus_Date) {
+            if (! empty($date) && $date instanceof Date) {
                 if ($yearOnly) {
                     $date = $date->getYear();
                 } else {
@@ -209,12 +231,16 @@ class Application_Util_DocumentAdapter
                 }
             }
 
-            return htmlspecialchars($date);
+            return htmlspecialchars($date ?? '');
         } catch (Exception $e) {
             return 'unknown';
         }
     }
 
+    /**
+     * @param bool $yearOnly
+     * @return string
+     */
     public function getDate($yearOnly = false)
     {
         $date = $this->getCompletedDate($yearOnly);
@@ -227,20 +253,23 @@ class Application_Util_DocumentAdapter
         return $date;
     }
 
+    /**
+     * @return string
+     */
     public function getYear()
     {
-        $date = $this->getDate(true);
-        return $date;
+        return $this->getDate(true);
     }
 
     /**
      * Return list of authors.
+     *
      * @return array
      */
     public function getAuthors()
     {
-        if ($this->_authors) {
-            return $this->_authors;
+        if ($this->authors) {
+            return $this->authors;
         }
 
         $authorsInfo = [];
@@ -248,38 +277,42 @@ class Application_Util_DocumentAdapter
         $authors = $this->document->getPersonAuthor();
 
         foreach ($authors as $person) {
-            $name = $person->getName();
+            $name      = $person->getName();
             $firstName = $person->getFirstName();
-            $lastName = $person->getLastName();
+            $lastName  = $person->getLastName();
 
             $author = [];
 
-            $author['name'] = htmlspecialchars($name);
-            $author['url'] = $this->getAuthorUrl($firstName . ' ' . $lastName);
+            $author['name']   = htmlspecialchars($name);
+            $author['url']    = $this->getAuthorUrl($firstName . ' ' . $lastName);
             $author['person'] = $person;
 
             $authorsInfo[] = $author;
         }
 
-        $this->_authors = $authorsInfo;
+        $this->authors = $authorsInfo;
 
         return $authorsInfo;
     }
 
     /**
      * Returns the search URL for an author.
+     *
+     * @param string $author
+     * @return string|null
      */
     public function getAuthorUrl($author)
     {
-        if (! is_null($this->_view)) {
+        if ($this->view !== null) {
             $author = str_replace(' ', '+', $author);
-            $url = [
-                'module' => 'solrsearch',
+            $url    = [
+                'module'     => 'solrsearch',
                 'controller' => 'index',
-                'action' => 'search',
+                'action'     => 'search',
                 'searchtype' => 'authorsearch',
-                'author' => '"' . $author . '"'];
-            return $this->_view->url($url, null, true);
+                'author'     => '"' . $author . '"',
+            ];
+            return $this->view->url($url, null, true);
         } else {
             return null;
         }
@@ -287,6 +320,7 @@ class Application_Util_DocumentAdapter
 
     /**
      * Returns the document state.
+     *
      * @return string
      */
     public function getDocState()
@@ -298,63 +332,91 @@ class Application_Util_DocumentAdapter
         }
     }
 
+    /**
+     * @return bool
+     *
+     * TODO PHP7 on old systems getBelongsToBibliography returns strings ("0" or "1")
+     */
     public function isBelongsToBibliography()
     {
-        return $this->document->getBelongsToBibliography() == 1;
+        return filter_var($this->document->getBelongsToBibliography(), FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
      * Returns true if the document is deleted.
-     * @return boolean
+     *
+     * @return bool
      */
     public function isDeleted()
     {
-        return ($this->getDocState() === 'deleted');
+        return $this->getDocState() === 'deleted';
     }
 
+    /**
+     * @return bool
+     */
     public function isPublished()
     {
-        return ($this->getDocState() === 'published');
+        return $this->getDocState() === 'published';
     }
 
+    /**
+     * @return bool
+     */
     public function isUnpublished()
     {
-        return ($this->getDocState() === 'unpublished');
+        return $this->getDocState() === 'unpublished';
     }
 
+    /**
+     * @return bool
+     */
     public function hasFiles()
     {
-        return (count($this->document->getFile()) !== 0);
+        return count($this->document->getFile()) !== 0;
     }
 
+    /**
+     * @return int
+     */
     public function getFileCount()
     {
         return count($this->document->getFile());
     }
 
+    /**
+     * @return array
+     * @throws ModelException
+     * @throws NotFoundException
+     */
     public function getReviewer()
     {
         $return = [];
         foreach ($this->document->getEnrichment() as $e) {
-            if ($e->getKeyName() != 'reviewer.user_id') {
+            if ($e->getKeyName() !== 'reviewer.user_id') {
                 continue;
             }
-            $userId = $e->getValue();
-            $account = new Opus_Account($userId);
+            $userId                    = $e->getValue();
+            $account                   = Account::get($userId);
             $return[$account->getId()] = strtolower($account->getLogin());
         }
         return $return;
     }
 
+    /**
+     * @return array
+     * @throws ModelException
+     * @throws NotFoundException
+     */
     public function getSubmitter()
     {
         $return = [];
         foreach ($this->document->getEnrichment() as $e) {
-            if ($e->getKeyName() != 'submitter.user_id') {
+            if ($e->getKeyName() !== 'submitter.user_id') {
                 continue;
             }
-            $userId = $e->getValue();
-            $account = new Opus_Account($userId);
+            $userId                    = $e->getValue();
+            $account                   = Account::get($userId);
             $return[$account->getId()] = strtolower($account->getLogin());
         }
         return $return;

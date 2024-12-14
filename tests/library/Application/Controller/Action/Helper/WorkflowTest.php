@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,43 +25,43 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @package     Controller_Helper
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Document;
 
 /**
  * Unit Test for class Application_Controller_Action_Helper_Workflow.
  */
 class Application_Controller_Action_Helper_WorkflowTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['database', 'translation'];
 
-    private $__workflowHelper;
+    /** @var Application_Controller_Action_Helper_Workflow */
+    private $workflowHelper;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
-        $this->__workflowHelper = new Application_Controller_Action_Helper_Workflow();
+        $this->workflowHelper = new Application_Controller_Action_Helper_Workflow();
     }
 
     public function testIsValidStateTrue()
     {
-        $this->assertTrue($this->__workflowHelper->isValidState('published'));
+        $this->assertTrue($this->workflowHelper->isValidState('published'));
     }
 
     public function testIsValidStateFalse()
     {
-        $this->assertFalse($this->__workflowHelper->isValidState('notvalid'));
+        $this->assertFalse($this->workflowHelper->isValidState('notvalid'));
     }
 
     public function testIsValidStateForNull()
     {
-        $this->assertFalse($this->__workflowHelper->isValidState(null));
+        $this->assertFalse($this->workflowHelper->isValidState(null));
     }
 
     public function testIsValidStateForAllStates()
@@ -69,7 +70,7 @@ class Application_Controller_Action_Helper_WorkflowTest extends ControllerTestCa
 
         foreach ($states as $state) {
             $this->assertTrue(
-                $this->__workflowHelper->isValidState($state),
+                $this->workflowHelper->isValidState($state),
                 'State \'' . $state . '\' should be valid.'
             );
         }
@@ -90,7 +91,7 @@ class Application_Controller_Action_Helper_WorkflowTest extends ControllerTestCa
         $doc->setServerState('unpublished');
 
         $targetStates =
-            $this->__workflowHelper->getAllowedTargetStatesForDocument($doc);
+            $this->workflowHelper->getAllowedTargetStatesForDocument($doc);
 
         $this->assertEquals(5, count($targetStates));
         $this->assertFalse(in_array('unpublished', $targetStates));
@@ -127,9 +128,9 @@ class Application_Controller_Action_Helper_WorkflowTest extends ControllerTestCa
 
         $docId = $doc->getId();
 
-        $this->__workflowHelper->changeState($doc, 'published');
+        $this->workflowHelper->changeState($doc, 'published');
 
-        $doc = new Opus_Document($docId);
+        $doc = Document::get($docId);
 
         $this->assertEquals('published', $doc->getServerState());
         $this->assertNotNull($doc->getServerDatePublished());
@@ -145,9 +146,9 @@ class Application_Controller_Action_Helper_WorkflowTest extends ControllerTestCa
 
         $docId = $doc->getId();
 
-        $this->__workflowHelper->changeState($doc, 'deleted');
+        $this->workflowHelper->changeState($doc, 'deleted');
 
-        $doc = new Opus_Document($docId);
+        $doc = Document::get($docId);
 
         $this->assertEquals('deleted', $doc->getServerState());
     }
@@ -162,7 +163,7 @@ class Application_Controller_Action_Helper_WorkflowTest extends ControllerTestCa
 
         $docId = $doc->getId();
 
-        $this->__workflowHelper->changeState($doc, 'removed');
+        $this->workflowHelper->changeState($doc, 'removed');
 
         $documentsHelper = new Application_Controller_Action_Helper_Documents();
 
@@ -182,9 +183,9 @@ class Application_Controller_Action_Helper_WorkflowTest extends ControllerTestCa
 
         $docId = $doc->getId();
 
-        $this->__workflowHelper->changeState($doc, 'unpublished');
+        $this->workflowHelper->changeState($doc, 'unpublished');
 
-        $doc = new Opus_Document($docId);
+        $doc = Document::get($docId);
 
         $this->assertEquals('unpublished', $doc->getServerState());
     }
@@ -195,7 +196,7 @@ class Application_Controller_Action_Helper_WorkflowTest extends ControllerTestCa
 
         $doc->setServerState('unpublished');
 
-        $this->assertTrue($this->__workflowHelper->isTransitionAllowed(
+        $this->assertTrue($this->workflowHelper->isTransitionAllowed(
             $doc,
             'published'
         ));
@@ -207,7 +208,7 @@ class Application_Controller_Action_Helper_WorkflowTest extends ControllerTestCa
 
         $doc->setServerState('published');
 
-        $this->assertFalse($this->__workflowHelper->isTransitionAllowed(
+        $this->assertFalse($this->workflowHelper->isTransitionAllowed(
             $doc,
             'unpublished'
         ));
@@ -217,7 +218,7 @@ class Application_Controller_Action_Helper_WorkflowTest extends ControllerTestCa
     {
         $states = Application_Controller_Action_Helper_Workflow::getAllStates();
 
-        $translate = Zend_Registry::get('Zend_Translate');
+        $translate = Application_Translate::getInstance();
 
         foreach ($states as $state) {
             $key = 'admin_workflow_' . $state;
@@ -233,13 +234,17 @@ class Application_Controller_Action_Helper_WorkflowTest extends ControllerTestCa
      */
     public function testRegression2446DontSetServerDatePublished()
     {
-        $doc = new Mock_Opus_Document();
+        $doc = $this->createTestDocument();
 
+        $doc->setLifecycleListener(new DocumentLifecycleListenerMock());
         $doc->setServerState('unpublished');
 
-        $this->__workflowHelper->changeState($doc, 'published');
+        $this->workflowHelper->changeState($doc, 'published'); // Document is stored in this function
 
         $this->assertEquals('published', $doc->getServerState());
+
+        // ServerDatePublished should not have been set by changeState (can only be tested if this is disabled for
+        // the store() function)
         $this->assertNull($doc->getServerDatePublished());
     }
 }

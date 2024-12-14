@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,25 +25,26 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @package     Application
- * @author      Jens Schwidder <schwidder@zib.de>
- * @author      Michael Lang <lang@zib.de
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\Config;
+use Opus\Common\Document;
+use Opus\Document\Plugin\IdentifierDoi;
+use Opus\Document\Plugin\IdentifierUrn;
+use Opus\Document\Plugin\XmlCache;
+use Opus\Search\Plugin\Index;
+
 class Application_ConfigurationTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['database', 'locale'];
 
-    /**
-     * @var Application_Configuration
-     */
+    /** @var Application_Configuration */
     private $config;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
         $this->makeConfigurationModifiable();
@@ -53,7 +55,7 @@ class Application_ConfigurationTest extends ControllerTestCase
     {
         $zendConfig = $this->config->getConfig();
         $this->assertNotNull($zendConfig);
-        $this->assertInstanceOf('Zend_Config', $zendConfig);
+        $this->assertInstanceOf(Zend_Config::class, $zendConfig);
     }
 
     public function testGetLogger()
@@ -61,7 +63,7 @@ class Application_ConfigurationTest extends ControllerTestCase
         $logger = $this->config->getLogger();
 
         $this->assertNotNull($logger);
-        $this->assertInstanceOf('Zend_Log', $logger);
+        $this->assertInstanceOf(Zend_Log::class, $logger);
     }
 
     public function testSetLogger()
@@ -101,7 +103,7 @@ class Application_ConfigurationTest extends ControllerTestCase
 
     public function testGetOpusVersion()
     {
-        $config = Zend_Registry::get('Zend_Config');
+        $config = $this->getConfig();
         $this->assertEquals($config->version, Application_Configuration::getOpusVersion());
     }
 
@@ -121,9 +123,18 @@ class Application_ConfigurationTest extends ControllerTestCase
         $this->assertTrue($this->config->isLanguageSelectionEnabled());
     }
 
+    public function testGetSupportedLanguagesValuesAreTrimmed()
+    {
+        $this->adjustConfiguration([
+            'supportedLanguages' => 'en, de',
+        ]);
+
+        $this->assertEquals(['en', 'de'], $this->config->getSupportedLanguages());
+    }
+
     public function testIsLanguageSelectionEnabledFalse()
     {
-        Zend_Registry::get('Zend_Config')->supportedLanguages = 'de';
+        Config::get()->supportedLanguages = 'de';
         $this->assertEquals(['de'], $this->config->getSupportedLanguages());
         $this->assertFalse($this->config->isLanguageSelectionEnabled());
     }
@@ -135,7 +146,7 @@ class Application_ConfigurationTest extends ControllerTestCase
 
     public function testGetDefaultLanguageIfOnlyOneIsSupported()
     {
-        Zend_Registry::get('Zend_Config')->supportedLanguages = 'de';
+        $this->getConfig()->supportedLanguages = 'de';
         $this->assertEquals('de', $this->config->getDefaultLanguage());
     }
 
@@ -165,9 +176,9 @@ class Application_ConfigurationTest extends ControllerTestCase
      */
     public function testGetWorkspacePathSetWithSlash()
     {
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config([
-            'workspacePath' => APPLICATION_PATH . '/tests/workspace/'
-        ]));
+        $this->adjustConfiguration([
+            'workspacePath' => APPLICATION_PATH . '/tests/workspace/',
+        ]);
 
         $workspacePath = $this->config->getWorkspacePath();
 
@@ -210,10 +221,10 @@ class Application_ConfigurationTest extends ControllerTestCase
         $config = Application_Configuration::getInstance();
         $this->assertEquals('OPUS 4', $config->getName());
 
-        Zend_Registry::get('Zend_Config')->merge(new Zend_Config(['name' => 'OPUS Test']));
+        $this->adjustConfiguration(['name' => 'OPUS Test']);
         $this->assertEquals('OPUS Test', $config->getName());
 
-        $zendConfig = Zend_Registry::get('Zend_Config');
+        $zendConfig = $this->getConfig();
         unset($zendConfig->name);
         $this->assertEquals('OPUS 4', $config->getName());
     }
@@ -253,7 +264,7 @@ class Application_ConfigurationTest extends ControllerTestCase
 
         $subconfig = $config->getValue('orcid');
 
-        $this->assertInstanceOf('Zend_Config', $subconfig);
+        $this->assertInstanceOf(Zend_Config::class, $subconfig);
     }
 
     public function testGetValueForNull()
@@ -266,13 +277,13 @@ class Application_ConfigurationTest extends ControllerTestCase
 
     public function testDocumentPlugins()
     {
-        $document = new Opus_Document();
+        $document = Document::new();
 
         $this->assertEquals([
-            'Opus\Search\Plugin\Index',
-            'Opus_Document_Plugin_XmlCache',
-            'Opus_Document_Plugin_IdentifierUrn',
-            'Opus_Document_Plugin_IdentifierDoi'
+            Index::class,
+            XmlCache::class,
+            IdentifierUrn::class,
+            IdentifierDoi::class,
         ], $document->getDefaultPlugins());
     }
 }

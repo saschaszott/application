@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,30 +25,27 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     View
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2019, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
-/**
- *
- */
+use Opus\Common\Identifier;
+
 class Application_View_Helper_TranslateIdentifier extends Zend_View_Helper_Translate
 {
-
     /**
+     * @param string|null $type
+     * @return string
      */
     public function translateIdentifier($type = null)
     {
-        if (is_null($type)) {
+        if ($type === null) {
             return $this;
         }
 
-        $translator = Zend_Registry::get(Application_Translate::REGISTRY_KEY);
+        $translator = Application_Translate::getInstance();
         // TODO map from Type to field name
-        $fieldname = Opus_Identifier::getFieldnameForType($type);
+        $fieldname = Identifier::getFieldnameForType($type);
         return $translator->translate($fieldname);
     }
 }

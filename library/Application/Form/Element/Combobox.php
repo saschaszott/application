@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,9 +25,6 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application
- * @package     Application_Form_Element
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2017, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
@@ -42,9 +40,10 @@
  */
 class Application_Form_Element_Combobox extends Zend_Form_Element_Multi
 {
-
+    /** @var bool */
     public $multiple = false;
 
+    /** @var string */
     public $helper = 'formCombobox';
 
     public function init()
@@ -59,7 +58,7 @@ class Application_Form_Element_Combobox extends Zend_Form_Element_Multi
 
     public function loadDefaultDecorators()
     {
-        if (! $this->loadDefaultDecoratorsIsDisabled() && count($this->getDecorators()) == 0) {
+        if (! $this->loadDefaultDecoratorsIsDisabled() && count($this->getDecorators()) === 0) {
             $this->setDecorators(
                 [
                     'ViewHelper',
@@ -67,7 +66,7 @@ class Application_Form_Element_Combobox extends Zend_Form_Element_Multi
                     'Errors',
                     'ElementHtmlTag',
                     ['LabelNotEmpty', ['tag' => 'div', 'tagClass' => 'label', 'placement' => 'prepend']],
-                    [['dataWrapper' => 'HtmlTagWithId'], ['tag' => 'div', 'class' => 'data-wrapper']]
+                    [['dataWrapper' => 'HtmlTagWithId'], ['tag' => 'div', 'class' => 'data-wrapper']],
                 ]
             );
         }
@@ -75,11 +74,12 @@ class Application_Form_Element_Combobox extends Zend_Form_Element_Multi
 
     /**
      * Sets multi option such that value and label are equal.
-     * @param $values
+     *
+     * @param array|string|null $values
      */
     public function setAutocompleteValues($values)
     {
-        if (! is_null($values)) {
+        if ($values !== null) {
             if (is_array($values)) {
                 $options = array_combine($values, $values);
                 $options = array_diff($options, [null]); // remove options with null value

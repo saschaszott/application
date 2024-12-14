@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,20 +25,17 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2013-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2013, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
- **/
+ */
 
 class Admin_Form_Document_PersonMovesTest extends ControllerTestCase
 {
-
     public function testConstructForm()
     {
         $form = new Admin_Form_Document_PersonMoves();
 
-        $this->assertEquals(4, count($form->getElements()));
+        $this->assertCount(4, $form->getElements());
 
         $this->assertNotNull($form->getElement('First'));
         $this->assertNotNull($form->getElement('Up'));
@@ -49,7 +47,7 @@ class Admin_Form_Document_PersonMovesTest extends ControllerTestCase
     {
         $form = new Admin_Form_Document_PersonMoves(Admin_Form_Document_PersonMoves::POSITION_FIRST);
 
-        $this->assertEquals(2, count($form->getElements()));
+        $this->assertCount(2, $form->getElements());
 
         $this->assertNotNull($form->getElement('Down'));
         $this->assertNotNull($form->getElement('Last'));
@@ -59,7 +57,7 @@ class Admin_Form_Document_PersonMovesTest extends ControllerTestCase
     {
         $form = new Admin_Form_Document_PersonMoves(Admin_Form_Document_PersonMoves::POSITION_LAST);
 
-        $this->assertEquals(2, count($form->getElements()));
+        $this->assertCount(2, $form->getElements());
 
         $this->assertNotNull($form->getElement('First'));
         $this->assertNotNull($form->getElement('Up'));
@@ -70,7 +68,7 @@ class Admin_Form_Document_PersonMovesTest extends ControllerTestCase
         $form = new Admin_Form_Document_PersonMoves();
 
         $post = [
-            'First' => 'Erster'
+            'First' => 'Erster',
         ];
 
         $result = $form->processPost($post, null);
@@ -86,23 +84,23 @@ class Admin_Form_Document_PersonMovesTest extends ControllerTestCase
     {
         $form = new Admin_Form_Document_PersonMoves();
 
-        $this->assertEquals(4, count($form->getElements()));
+        $this->assertCount(4, $form->getElements());
 
         $form->changePosition(Admin_Form_Document_PersonMoves::POSITION_FIRST);
 
-        $this->assertEquals(2, count($form->getElements()));
+        $this->assertCount(2, $form->getElements());
         $this->assertNotNull($form->getElement('Down'));
         $this->assertNotNull($form->getElement('Last'));
 
         $form->changePosition(Admin_Form_Document_PersonMoves::POSITION_LAST);
 
-        $this->assertEquals(2, count($form->getElements()));
+        $this->assertCount(2, $form->getElements());
         $this->assertNotNull($form->getElement('First'));
         $this->assertNotNull($form->getElement('Up'));
 
         $form->changePosition(Admin_Form_Document_PersonMoves::POSITION_DEFAULT);
 
-        $this->assertEquals(4, count($form->getElements()));
+        $this->assertCount(4, $form->getElements());
     }
 
     public function testProcessPostEmpty()

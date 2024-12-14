@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,26 +25,27 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2013-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2013, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  **/
+
+use Opus\Common\Document;
+use Opus\Common\Model\NotFoundException;
 
 /**
  * Unit Tests fuer Unterformular fuer Personen in einer Rolle im Metadaten-Formular.
  */
 class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['database'];
 
     public function testCreateForm()
     {
         $form = new Admin_Form_Document_PersonRole('author');
 
-        $this->assertEquals(1, count($form->getElements()));
-        $this->assertEquals(0, count($form->getSubForms()));
+        $this->assertCount(1, $form->getElements());
+        $this->assertCount(0, $form->getSubForms());
         $this->assertEquals('author', $form->getRoleName());
         $this->assertNotNull($form->getElement('Add'));
     }
@@ -52,13 +54,13 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
     {
         $form = new Admin_Form_Document_PersonRole('author');
 
-        $document = new Opus_Document(21); // hat zwei Authoren
+        $document = Document::get(21); // hat zwei Authoren
 
-        $this->assertEquals(0, count($form->getSubForms()));
+        $this->assertCount(0, $form->getSubForms());
 
         $form->populateFromModel($document);
 
-        $this->assertEquals(2, count($form->getSubForms()));
+        $this->assertCount(2, $form->getSubForms());
     }
 
     public function testProcessPostAdd()
@@ -66,7 +68,7 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $form = new Admin_Form_Document_PersonRole('author');
 
         $post = [
-            'Add' => 'Hinzufügen'
+            'Add' => 'Hinzufügen',
         ];
 
         $result = $form->processPost($post, null);
@@ -88,19 +90,19 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
 
         $post = [
             'PersonAuthor0' => [
-                'Remove' => 'Entfernen'
-            ]
+                'Remove' => 'Entfernen',
+            ],
         ];
 
-        $document = new Opus_Document(21); // hat zwei Authoren
+        $document = Document::get(21); // hat zwei Authoren
 
         $form->populateFromModel($document);
 
-        $this->assertEquals(2, count($form->getSubForms()), 'Ungenügend Unterformulare.');
+        $this->assertCount(2, $form->getSubForms(), 'Ungenügend Unterformulare.');
 
         $form->processPost($post, null);
 
-        $this->assertEquals(1, count($form->getSubForms()), 'Unterformular wurde nicht entfernt.');
+        $this->assertCount(1, $form->getSubForms(), 'Unterformular wurde nicht entfernt.');
 
         // TODO prüfe Namen von Unterformularen
     }
@@ -111,15 +113,15 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
 
         $post = [
             'PersonAuthor0' => [
-                'Edit' => 'Editieren'
-            ]
+                'Edit' => 'Editieren',
+            ],
         ];
 
-        $document = new Opus_Document(21); // hat zwei Authoren
+        $document = Document::get(21); // hat zwei Authoren
 
         $form->populateFromModel($document);
 
-        $this->assertEquals(2, count($form->getSubForms()));
+        $this->assertCount(2, $form->getSubForms());
 
         $result = $form->processPost($post, null);
 
@@ -150,9 +152,9 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $post = [
             'PersonAuthor2' => [
                 'Moves' => [
-                    'First' => 'First'
-                ]
-            ]
+                    'First' => 'First',
+                ],
+            ],
         ];
 
         $form->processPost($post, null);
@@ -176,9 +178,9 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $post = [
             'PersonAuthor1' => [
                 'Moves' => [
-                    'First' => 'First'
-                ]
-            ]
+                    'First' => 'First',
+                ],
+            ],
         ];
 
         $form->processPost($post, null);
@@ -193,9 +195,9 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $post = [
             'PersonAuthor0' => [
                 'Moves' => [
-                    'Last' => 'Last'
-                ]
-            ]
+                    'Last' => 'Last',
+                ],
+            ],
         ];
 
         $form->processPost($post, null);
@@ -214,9 +216,9 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $post = [
             'PersonAuthor1' => [
                 'Moves' => [
-                    'Last' => 'Last'
-                ]
-            ]
+                    'Last' => 'Last',
+                ],
+            ],
         ];
 
         $form->processPost($post, null);
@@ -235,9 +237,9 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $post = [
             'PersonAuthor0' => [
                 'Moves' => [
-                    'Last' => 'Last'
-                ]
-            ]
+                    'Last' => 'Last',
+                ],
+            ],
         ];
 
         $form->processPost($post, null);
@@ -256,9 +258,9 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $post = [
             'PersonAuthor0' => [
                 'Moves' => [
-                    'Last' => 'Last'
-                ]
-            ]
+                    'Last' => 'Last',
+                ],
+            ],
         ];
 
         $form->processPost($post, null);
@@ -273,9 +275,9 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $post = [
             'PersonAuthor2' => [
                 'Moves' => [
-                    'Up' => 'Hoch'
-                ]
-            ]
+                    'Up' => 'Hoch',
+                ],
+            ],
         ];
 
         $form->processPost($post, null);
@@ -290,9 +292,9 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $post = [
             'PersonAuthor0' => [
                 'Moves' => [
-                    'Up' => 'Hoch'
-                ]
-            ]
+                    'Up' => 'Hoch',
+                ],
+            ],
         ];
 
         $form->processPost($post, null);
@@ -311,9 +313,9 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $post = [
             'PersonAuthor2' => [
                 'Moves' => [
-                    'Up' => 'Hoch'
-                ]
-            ]
+                    'Up' => 'Hoch',
+                ],
+            ],
         ];
 
         $form->processPost($post, null);
@@ -328,9 +330,9 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $post = [
             'PersonAuthor1' => [
                 'Moves' => [
-                    'Down' => 'Runter'
-                ]
-            ]
+                    'Down' => 'Runter',
+                ],
+            ],
         ];
 
         $form->processPost($post, null);
@@ -360,9 +362,9 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $post = [
             'PersonAuthor2' => [
                 'Moves' => [
-                    'Down' => 'Runter'
-                ]
-            ]
+                    'Down' => 'Runter',
+                ],
+            ],
         ];
 
         $form->processPost($post, null);
@@ -381,9 +383,9 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $post = [
             'PersonAuthor1' => [
                 'Moves' => [
-                    'Down' => 'Runter'
-                ]
-            ]
+                    'Down' => 'Runter',
+                ],
+            ],
         ];
 
         $form->processPost($post, null);
@@ -402,9 +404,9 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $post = [
             'PersonAuthor0' => [
                 'Moves' => [
-                    'Down' => 'Runter'
-                ]
-            ]
+                    'Down' => 'Runter',
+                ],
+            ],
         ];
 
         $form->processPost($post, null);
@@ -451,9 +453,6 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $this->verifyExpectedOrder($form, [312, 311, 310]);
     }
 
-    /**
-     *
-     */
     public function testSortSubFormsBySortOrderRepeatedValuesRespectOldOrderAndModified()
     {
         $form = $this->getFormForSorting();
@@ -467,9 +466,6 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $this->verifyExpectedOrder($form, [311, 312, 310]);
     }
 
-    /**
-     *
-     */
     public function testSortSubFormsBySortOrderRepeatedValuesRespectOldOrder()
     {
         $form = $this->getFormForSorting();
@@ -517,11 +513,11 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
     {
         $form = $this->getFormForSorting();
 
-        $doc = new Opus_Document(250);
+        $doc = Document::get(250);
 
         $authors = $form->getSubFormModels($doc);
 
-        $this->assertEquals(3, count($authors));
+        $this->assertCount(3, $authors);
 
         $this->assertEquals(310, $authors[0]->getModel()->getId());
         $this->assertEquals(311, $authors[1]->getModel()->getId());
@@ -532,13 +528,13 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
     {
         $form = $this->getFormForSorting();
 
-        $doc = new Opus_Document(250);
+        $doc = Document::get(250);
 
         $form->updateModel($doc);
 
         $authors = $doc->getPersonAuthor();
 
-        $this->assertEquals(3, count($authors));
+        $this->assertCount(3, $authors);
 
         $this->assertEquals(310, $authors[0]->getModel()->getId());
         $this->assertEquals(311, $authors[1]->getModel()->getId());
@@ -553,7 +549,7 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $form->addPerson(['person' => '311']);
         $form->addPerson(['person' => '312']);
 
-        $this->assertEquals(3, count($form->getSubForms()));
+        $this->assertCount(3, $form->getSubForms());
 
         $this->verifyExpectedOrder($form, [310, 311, 312]);
     }
@@ -628,7 +624,7 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $form->addPerson(['person' => '310']);
         $form->addPerson(['person' => '310']);
 
-        $this->assertEquals(1, count($form->getSubForms()));
+        $this->assertCount(1, $form->getSubForms());
 
         $this->assertEquals(310, $form->getSubForm('PersonAuthor0')->getElementValue('PersonId'));
     }
@@ -643,11 +639,11 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
 
         $form->addPerson([]);
 
-        $this->assertEquals(0, count($form->getSubForms()));
+        $this->assertCount(0, $form->getSubForms());
 
         $messages = $logger->getMessages();
 
-        $this->assertEquals(1, count($messages));
+        $this->assertCount(1, $messages);
         $this->assertContains('Attempt to add person without ID.', $messages[0]);
     }
 
@@ -675,6 +671,10 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         $this->assertEquals(312, $form->getSubFormForPerson(312)->getElementValue('PersonId'));
     }
 
+    /**
+     * @param Zend_Form $form
+     * @param array     $expected
+     */
     protected function verifyExpectedOrder($form, $expected)
     {
         foreach ($expected as $index => $personId) {
@@ -684,13 +684,17 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         }
     }
 
+    /**
+     * @return Admin_Form_Document_PersonRole
+     * @throws NotFoundException
+     */
     protected function getFormForSorting()
     {
         $form = new Admin_Form_Document_PersonRole('author');
 
-        $document = new Opus_Document(250);
+        $document = Document::get(250);
 
-        $authors = $document->getPersonAuthor();
+        $authors   = $document->getPersonAuthor();
         $authorId0 = $authors[0]->getModel()->getId(); // 310
         $authorId1 = $authors[1]->getModel()->getId(); // 311
         $authorId2 = $authors[2]->getModel()->getId(); // 312
@@ -702,9 +706,17 @@ class Admin_Form_Document_PersonRoleTest extends ControllerTestCase
         return $form;
     }
 
+    /**
+     * @param string $className
+     * @param string $methodName
+     * @return ReflectionMethod
+     * @throws ReflectionException
+     *
+     * TODO move to common class (make it reusable)
+     */
     private function getMethod($className, $methodName)
     {
-        $class = new ReflectionClass($className);
+        $class  = new ReflectionClass($className);
         $method = $class->getMethod($methodName);
         $method->setAccessible(true);
         return $method;

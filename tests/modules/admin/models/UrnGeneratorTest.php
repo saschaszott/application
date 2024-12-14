@@ -25,52 +25,30 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @package     Admin_Model
- * @author      Sascha Szott <szott@zib.de>
- * @copyright   Copyright (c) 2018-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2018, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 class Admin_Model_UrnGeneratorTest extends ControllerTestCase
 {
-
-    private $config;
-
-    public function setUp()
-    {
-        parent::setUp();
-
-        $this->makeConfigurationModifiable();
-    }
-
-    public function tearDown()
-    {
-        if (! is_null($this->config)) {
-            // undo modifications in configuration
-            Zend_Registry::set('Zend_Config', $this->config);
-        }
-    }
-
+    /**
+     * @param string $nss
+     * @param string $nid
+     */
     private function modifyUrnConfig($nss, $nid)
     {
-        // backup current config state
-        $this->config = Zend_Registry::get('Zend_Config');
-
         // modify current config state
-        $config = Zend_Registry::get('Zend_Config');
-        $config->merge(new Zend_Config([
+        $this->adjustConfiguration([
             'urn' => [
                 'nss' => $nss,
-                'nid' => $nid
-            ]
-        ]));
-        Zend_Registry::set('Zend_Config', $config);
+                'nid' => $nid,
+            ],
+        ]);
     }
 
     public function testWithMissingConfig()
     {
         $this->modifyUrnConfig('', '');
-        $this->setExpectedException('Application_Exception');
+        $this->expectException(Application_Exception::class);
         new Admin_Model_UrnGenerator();
     }
 
@@ -78,7 +56,7 @@ class Admin_Model_UrnGeneratorTest extends ControllerTestCase
     {
         $this->modifyUrnConfig('de:kobv:test-opus', '');
 
-        $this->setExpectedException('Application_Exception');
+        $this->expectException(Application_Exception::class);
         new Admin_Model_UrnGenerator();
     }
 
@@ -86,7 +64,7 @@ class Admin_Model_UrnGeneratorTest extends ControllerTestCase
     {
         $this->modifyUrnConfig('', 'nbn');
 
-        $this->setExpectedException('Application_Exception');
+        $this->expectException(Application_Exception::class);
         new Admin_Model_UrnGenerator();
     }
 
@@ -103,7 +81,7 @@ class Admin_Model_UrnGeneratorTest extends ControllerTestCase
         $this->modifyUrnConfig('de:kobv:test-opus', 'nbn');
 
         $urnGenerator = new Admin_Model_UrnGenerator();
-        $urn = $urnGenerator->generateUrnForDocument('123');
+        $urn          = $urnGenerator->generateUrnForDocument('123');
         $this->assertEquals('urn:nbn:de:kobv:test-opus-1232', $urn);
     }
 }

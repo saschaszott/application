@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
@@ -24,16 +25,16 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Tests
- * @package     Module_Admin
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2013-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2013, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
+use Opus\Common\CollectionInterface;
+use Opus\Common\Document;
+
 class Admin_Form_Document_CollectionsTest extends ControllerTestCase
 {
-
+    /** @var string[] */
     protected $additionalResources = ['database', 'view'];
 
     public function testConstructForm()
@@ -71,8 +72,8 @@ class Admin_Form_Document_CollectionsTest extends ControllerTestCase
         $form->constructFromPost([
             'ddc2' => [
                 'collection0' => ['Id' => 40],
-                'collection1' => ['Id' => 68]
-            ]
+                'collection1' => ['Id' => 68],
+            ],
         ]);
 
         $subforms = $form->getSubForms();
@@ -104,7 +105,7 @@ class Admin_Form_Document_CollectionsTest extends ControllerTestCase
 
     public function testGetGroupedCollections()
     {
-        $document = new Opus_Document(146);
+        $document = Document::get(146);
 
         $form = new Admin_Form_Document_Collections();
 
@@ -116,6 +117,6 @@ class Admin_Form_Document_CollectionsTest extends ControllerTestCase
         $ddc = $grouped['ddc'];
 
         $this->assertCount(4, $ddc);
-        $this->assertInstanceOf('Opus_Collection', $ddc[0]);
+        $this->assertInstanceOf(CollectionInterface::class, $ddc[0]);
     }
 }

@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -24,10 +25,7 @@
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * @category    Application Unit Test
- * @package     Controller_Helper
- * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2008, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
@@ -36,23 +34,24 @@
  */
 class Application_Controller_Action_Helper_AccessControlTest extends ControllerTestCase
 {
+    /** @var string[] */
+    protected $additionalResources = ['database'];
 
-    protected $additionalResources = ['database', 'authz'];
-
+    /** @var Application_Controller_Action_Helper_AccessControl */
     private $accessControl;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUpWithEnv('production');
         $this->assertSecurityConfigured();
-        $acl = Zend_Registry::get('Opus_Acl');
+        $acl = Application_Security_AclProvider::getAcl();
         $acl->allow('guest', 'accounts');
         $this->accessControl = new Application_Controller_Action_Helper_AccessControl();
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
-        $acl = Zend_Registry::get('Opus_Acl');
+        $acl = Application_Security_AclProvider::getAcl();
         $acl->deny('guest', 'accounts');
         parent::tearDown();
     }
@@ -69,30 +68,24 @@ class Application_Controller_Action_Helper_AccessControlTest extends ControllerT
         $this->assertTrue($allowedAccount, "expected access allowed to module 'account'");
     }
 
-    /**
-     * @expectedException Application_Exception
-     * @expectedExceptionMessage #1 argument must not be empty|null
-     */
     public function testAccessAllowedForEmptyResource()
     {
+        $this->expectException(Application_Exception::class);
+        $this->expectExceptionMessage('#1 argument must not be empty|null');
         $this->accessControl->accessAllowed('  ');
     }
 
-    /**
-     * @expectedException Application_Exception
-     * @expectedExceptionMessage #1 argument must not be empty|null
-     */
     public function testAccessAllowedForNullResource()
     {
+        $this->expectException(Application_Exception::class);
+        $this->expectExceptionMessage('#1 argument must not be empty|null');
         $this->accessControl->accessAllowed(null);
     }
 
-    /**
-     * @expectedException Zend_Acl_Exception
-     * @expectedExceptionMessage Resource 'unknown' not found
-     */
     public function testAccessAllowedForUnknownResource()
     {
+        $this->expectException(Zend_Acl_Exception::class);
+        $this->expectExceptionMessage('Resource \'unknown\' not found');
         $this->assertFalse($this->accessControl->accessAllowed('unknown'));
     }
 }

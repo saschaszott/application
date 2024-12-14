@@ -1,5 +1,6 @@
 <?php
-/*
+
+/**
  * This file is part of OPUS. The software OPUS has been originally developed
  * at the University of Stuttgart with funding from the German Research Net,
  * the Federal Department of Higher Education and Research and the Ministry
@@ -23,24 +24,20 @@
  * details. You should have received a copy of the GNU General Public License
  * along with OPUS; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- */
-
-/**
- * Add import collection if necessary.
  *
- * @category    Application
- * @package     Application_Update
- * @author      Jens Schwidder <schwidder@zib.de>
  * @copyright   Copyright (c) 2017, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
+
+use Opus\Common\Collection;
+use Opus\Common\CollectionRole;
+use Opus\Common\EnrichmentKey;
+
+/**
+ * Add import collection if necessary.
+ */
 class Application_Update_AddImportCollection extends Application_Update_PluginAbstract
 {
-
-    /**
-     *
-     * @return mixed
-     */
     public function run()
     {
         // add enrichment keys for imports
@@ -55,13 +52,16 @@ class Application_Update_AddImportCollection extends Application_Update_PluginAb
         $this->addCollection();
     }
 
+    /**
+     * @param string $name
+     */
     public function addEnrichmentKey($name)
     {
-        $enrichmentKey = Opus_EnrichmentKey::fetchByName($name);
+        $enrichmentKey = EnrichmentKey::fetchByName($name);
 
-        if (is_null($enrichmentKey)) {
+        if ($enrichmentKey === null) {
             $this->log("Creating enrichment key '$name' ... ");
-            $enrichmentKey = new Opus_EnrichmentKey();
+            $enrichmentKey = EnrichmentKey::new();
             $enrichmentKey->setName($name);
             $enrichmentKey->store();
         }
@@ -69,12 +69,12 @@ class Application_Update_AddImportCollection extends Application_Update_PluginAb
 
     public function addCollection()
     {
-        $collectionRole = Opus_CollectionRole::fetchByName('Import');
+        $collectionRole = CollectionRole::fetchByName('Import');
 
-        if (is_null($collectionRole)) {
+        if ($collectionRole === null) {
             $this->log("Creating collection role 'Import' ... ");
 
-            $collectionRole = new Opus_CollectionRole();
+            $collectionRole = CollectionRole::new();
 
             $collectionRole->setName('Import');
             $collectionRole->setOaiName('import');
@@ -83,7 +83,7 @@ class Application_Update_AddImportCollection extends Application_Update_PluginAb
             $collectionRole->setDisplayBrowsing('Number');
             $collectionRole->setDisplayFrontdoor('Number');
             $collectionRole->setVisibleOai(0);
-            $collectionRole->setPosition(Opus_CollectionRole::getLastPosition() + 1);
+            $collectionRole->setPosition(CollectionRole::getLastPosition() + 1);
             $root = $collectionRole->addRootCollection();
             $collectionRole->store();
         } else {
@@ -94,10 +94,10 @@ class Application_Update_AddImportCollection extends Application_Update_PluginAb
 
         $collection = $collectionRole->getCollectionByOaiSubset('import');
 
-        if (is_null($collection)) {
+        if ($collection === null) {
             $this->log("Creating collection 'import' ... ");
 
-            $collection = new Opus_Collection();
+            $collection = Collection::new();
             $collection->setName('Import');
             $collection->setNumber('import');
             $collection->setOaiSubset('import');
